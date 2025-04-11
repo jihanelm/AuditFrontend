@@ -1,0 +1,41 @@
+.footerSB {
+    background-color: #fff;
+    color: #210303;
+    padding: 5px 30px 30px 30px;
+    text-align: center;
+    width: 100%;
+    bottom: 0;
+    left: 0;
+    position: fixed;
+    box-shadow: 0 -2px 5px rgba(0, 0, 0, 0.1);
+    height: 60px;
+  }
+  
+  
+  .social-iconsSB {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 5px;
+    margin-top: 5px;
+  }
+  
+  .social-iconsSB a {
+    color: #333;
+    text-decoration: none;
+    margin: 0 5px;
+    font-size: 20px;
+    transition: color 0.3s ease;
+  }
+  
+  .social-iconsSB a:hover {
+    color: #39b18b;
+  }
+  
+  .footerSB p {
+    margin-top: 0px;
+    font-size: 12px;
+    color: #333;
+    text-align: center;
+    margin-bottom: 10px;
+  }
+  

@@ -1,0 +1,391 @@
+:root {
+    --light: #F9F9F9;
+    --blue: #2470f3;
+    --grey: #eee;
+    --dark: #342E37;
+    --dark-grey: #AAAAAA;
+  }
+  
+  nav {
+    z-index: 1000;
+    height: 60px;
+    background: var(--light);
+    padding: 0 24px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-family: var(--lato);
+    position: sticky;
+    top: 0;
+    left: 0;
+    width: 100%;
+    
+  }
+  
+  .navbar-shiftedSB {
+    margin-left: 250px;
+    width: calc(100% - 250px);
+  }
+  
+  nav a {
+    color: var(--dark);
+  }
+  
+  nav .bx.bx-menu {
+    cursor: pointer;
+  }
+  
+  nav form {
+    max-width: 400px;
+    width: 100%;
+    margin-right: auto;
+  }
+  
+  nav form .form-inputSB {
+    display: flex;
+    align-items: center;
+    height: 36px;
+    background: var(--grey);
+    border-radius: 18px;
+    overflow: hidden;
+    margin-left: 30px; /* Adjust this to control the space from the left */
+  }
+  
+  nav form .form-inputSB input {
+    flex-grow: 1;
+    padding: 0 16px;
+    height: 100%;
+    border: none;
+    background: transparent;
+    outline: none;
+    color: var(--dark);
+    border-radius: 18px 0 0 18px;
+  }
+  
+  nav form .form-inputSB button {
+    width: 50px;
+    height: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background-color: #2A8993; 
+    /* background: linear-gradient(to right, #39b18b, #247A96); */
+    color: var(--light);
+    font-size: 18px;
+    border: none;
+    outline: none;
+    cursor: pointer;
+  }
+  
+  nav .right-itemsSB {
+    display: flex;
+    align-items: center;
+    gap: 24px; /* Use gap for spacing between elements */
+    margin-left: auto; /* Pushes right-items to the right */
+  }
+  
+  nav .notification-iconSB {
+    font-size: 24px;
+    cursor: pointer;
+    color: var(--dark);
+  }
+  
+  
+  
+  
+  
+  
+  .sidebar-toggleSB {
+    border: transparent;
+    background: var(--light);
+    margin-left: 50px;
+    font-size: 24px;
+    color: #247A96;
+  }
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  .logout-button-containerSB {
+    text-align: center;
+  }
+  
+  .logout-buttonSB {
+    background-color: #247A96;
+    color: white !important; /* Set text color to white */
+    padding: 12px 20px;
+    border: none;
+    border-radius: 10px;
+    cursor: pointer;
+    font-size: 16px;
+    transition: background-color 0.3s ease;
+  }
+  
+  ul {
+    padding-left: 0;
+  }
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  /* Navbar.css */
+  .notification-iconSB {
+    position: relative;
+    display: inline-block;
+  }
+  
+  
+  
+  
+  .notification-countSB {
+    position: absolute;
+    top: -8px;
+    right: -8px;
+    background: red;
+    color: white;
+    border-radius: 50%;
+    padding: 4px 8px;
+    font-size: 12px;
+    font-weight: bold;
+  }
+  
+  
+  
+  .notification-iconSB .notification-bubbleSB {
+    position: absolute;
+    top: 0;
+    right: -5px; /* Adjust the position as needed */
+    background-color: red; /* Change the background color */
+    color: white; /* Change the text color */
+    border-radius: 50%;
+    padding: 3px 6px; /* Adjust padding as needed */
+    font-size: 8px; /* Adjust font size as needed */
+  }
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  .login-button-containerSB {
+    text-align: center;
+  }
+  
+  .login-buttonSB {
+    background-color: #247A96;
+    /* background: linear-gradient(to right,#39b18b, #247A96); */
+    color: white !important; /* Set text color to white */
+    padding: 12px 20px;
+    border: none;
+    border-radius: 10px;
+    cursor: pointer;
+    font-size: 16px;
+    transition: background-color 0.3s ease;
+  }
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  .navbarXSB {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background-color: #f8f9fa; /* Light gray background */
+    padding: 10px 20px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    height: 60px;
+  }
+  
+  
+  /* Navbar items */
+  .navbar-navSB {
+    display: flex;
+    gap: 30px; /* Space between items */
+    color: #39b18b;
+  }
+  
+  .nav-itemSB {
+    list-style: none; 
+    font-size: large;
+    
+  }
+  
+  .nav-linkSB {
+    text-decoration: none;
+    padding: 8px 12px;
+    transition: background-color 0.5s;
+    color: #247A96;
+    font-family:Verdana, Geneva, Tahoma, sans-serif;
+  }
+  
+  .nav-linkSB:hover, .nav-linkSB.active {
+    font-size: 1.05em;
+    color: #247A96;
+  }
+  
+  
+  
+  .brandSB {
+    font-size: 24px;
+    font-weight: 700;
+    height: 55px;
+    display: flex;
+    align-items: center;
+    background-color: #247A96 ;
+    position: sticky;
+    top: 0;
+    left: 0;
+    background: var(--light);
+    z-index: 500;
+    padding-bottom: 20px;
+    box-sizing: content-box;
+    padding: 0;
+  }
+  
+  .brandSB .bx {
+    min-width: 60px;
+    display: flex;
+    justify-content: center;
+  }
+  
+  
+  .brandSB:active {
+    color:#39b18b;
+  }
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  .notification-countSB {
+    font-size: 12px;
+    font-weight: bold;
+    color: white;
+    background-color: red;
+    border-radius: 50%;
+    padding: 3px 7px;
+    position: absolute;
+    top: -8px;
+    right: -8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  
+  .notification-iconSB {
+    background: none;
+    border: none;
+    cursor: pointer;
+    position: relative;
+  }
+  
+  
+  
+  
+  
+  
+  .notification-panelSB {
+    position: fixed;
+    top: 0;
+    right: 0;
+    width: 40%;
+    height: 97%;
+    background-color: white;
+    box-shadow: -2px 0 5px rgba(0, 0, 0, 0.2);
+    border-radius: 10px;
+    z-index: 1000;
+    display: flex;
+    flex-direction: column;
+    margin:10px;
+  }
+  
+  .notification-headerSB {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem;
+    background-color: #f5f5f5;
+    border-bottom: 1px solid #ddd;
+  }
+  
+  .notification-headerSB h2 {
+    margin: 0;
+    font-size: 18px;
+  }
+  
+  .close-panelSB {
+    background: none;
+    border: none;
+    font-size: 20px;
+    cursor: pointer;
+  }
+  
+  
+  .notification-bodySB {
+    overflow-y: auto;
+    background-color: white;
+  }
+  
+  
+  .notification-itemSB{
+    padding: 15px;
+    border-bottom: 1px solid #ebebeb; 
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+    font-family: 'Inter', sans-serif;
+  }
+  
+  
+  .notification-timestampSB{
+    font-size: 12px;
+    font-weight: 400;
+    color: #6B7280;
+    margin-top: 4px;
+    margin-top: 10px;
+  }
+  

@@ -1,0 +1,30 @@
+@import url('https://fonts.googleapis.com/css2?family=Lato:wght@400;700&family=Poppins:wght@400;500;600;700&display=swap');
+
+
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+:root {
+  --poppins: 'Poppins', sans-serif;
+  --lato: 'Lato', sans-serif;
+}
+
+body {
+  background: #eee;
+}
+
+
+.AppJE {
+  display: flex;
+  flex-direction: column; /* Stack components vertically */
+  /* height: 100vh; sticky footer */
+}
+
+.main-contentJE {
+  flex: 1; /* Take up the remaining space beside the navbar */
+  overflow: hidden;
+}
