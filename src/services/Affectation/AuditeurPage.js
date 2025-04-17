@@ -14,7 +14,6 @@ import {
   Checkbox,
 } from "@mui/material";
 import { DataGrid } from "@mui/x-data-grid";
-import axios from "axios";
 import api from "../../api";
 
 export default function AuditeurPage() {
@@ -60,11 +59,6 @@ export default function AuditeurPage() {
         phone: auditeur.phone,
         prestataire_id: auditeur.prestataire_id
       };
-  
-      const response = await api.put(
-        `/affect/auditeurs/${auditeur.id}`,
-        updatedData
-      );
   
     } catch (error) {
       console.error("Erreur handleUpdate :", error.response?.data || error.message);

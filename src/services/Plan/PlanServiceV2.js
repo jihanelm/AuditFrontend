@@ -107,7 +107,7 @@ const PlanService = () => {
   
   const handleAddPlan = async () => {
     try {
-      await api.post(`/plan/plans/`, newPlan);
+      await api.post(`/plan/plan/`, newPlan);
       fetchPlans();
       setNewPlan({ /* reset fields */ });
       setShowNewRow(false);

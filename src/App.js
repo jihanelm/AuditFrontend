@@ -1,18 +1,31 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { ThemeProvider, createTheme, CssBaseline, Box, Container } from '@mui/material';
 
 import Main from './layout/components/Main';
+
 import AuditRequest from './services/AuditRequest/AuditRequestForm';
 import AuditList from './services/AuditRequest/AuditList';
+
 import AffectationForm from './services/Affectation/AffectationForm';
-import AuditeurPage from './services/Affectation/AuditeurPage';
-import Plan from './services/Plan/Plan';
 import AffectList from './services/Affectation/AffectList';
+
+import AuditeurPage from './services/Affectation/AuditeurPage';
 import IPList from './services/Affectation/IPList';
+
+import Plan from './services/Plan/Plan';
 import PlanServiceV1 from './services/Plan/PlanServiceV1';
 import PlanServiceV2 from './services/Plan/PlanServiceV2';
+import PlanServiceV3 from './services/Plan/PlanServiceV3';
+import PlanServiceV4 from './services/Plan/PlanServiceV4';
 import PlanService from './services/Plan/PlanService';
+
+import ListesAudit from './services/Audit/ListesAudit';
+
+import Dashboard from './services/Dashboard/Dashboard';
+
+import Landing from './layout/components/Landing';
+import Footer from './layout/components/Footer';
 
 const theme = createTheme({
   palette: {
@@ -30,38 +43,45 @@ const theme = createTheme({
 });
 
 function App() {
-
-  const [filters, setFilters] = useState({
-    year: "",
-    month: "",
-    type_audit: "",
-    status: "",
-  });
-
   return (
     <ThemeProvider theme={theme}>
       <CssBaseline />
       <Router>
         <Box sx={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
-          <Container maxWidth="md" sx={{ flexGrow: 1, mt: 4 }}>
+          {/* Header or Nav if needed */}
+          <Container maxWidth="md" sx={{ flex: 1, mt: 4 }}>
             <Routes>
               <Route path="/" element={<Main />} />
+
               <Route path="/request" element={<AuditRequest />} />
               <Route path="/audit-list" element={<AuditList />} />
+
               <Route path="/assign" element={<AffectationForm />} />
               <Route path="/affect-list" element={<AffectList />} />
+
               <Route path="/auditeurs-list" element={<AuditeurPage />} />
-              <Route path="/upload" element={<Plan />} />
               <Route path="/ip-list" element={<IPList />} />  
+
+              <Route path="/upload" element={<Plan />} />
               <Route path='/plan1' element={<PlanServiceV1 />} />
               <Route path='/plan2' element={<PlanServiceV2 />} />
+              <Route path='/plan3' element={<PlanServiceV3 />} />
+              <Route path='/plan4' element={<PlanServiceV4 />} />
               <Route path='/plan' element={<PlanService />} />
+
+              <Route path='/list' element={<ListesAudit />} />
+
+              <Route path='/dash' element={<Dashboard />} />
+
+              <Route path='/land' element={<Landing />} />
             </Routes>
           </Container>
+          <Footer /> 
         </Box>
       </Router>
     </ThemeProvider>
   );
 }
+
 
 export default App;

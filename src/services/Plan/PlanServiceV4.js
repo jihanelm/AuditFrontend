@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import {
+  Container,
   Typography,
   Button,
   TextField,
@@ -15,9 +16,12 @@ import {
   Input,
   Grid,
   Box,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
 } from "@mui/material";
 import api from "../../api";
-import EditPlanForm from "./EditPlanForm"
 
 const PlanService = () => {
   const [file, setFile] = useState(null);
@@ -29,7 +33,31 @@ const PlanService = () => {
     type_audit: "",
   });
 
-  const [columns, setColumns] = useState([]); 
+  const [columns, setColumns] = useState([]);
+
+  const fetchColumns = async () => {
+    try {
+      const response = await api.get("/admin/plan/columns");
+      const allColumns = response.data;
+      const excluded = ["id", "created_at", "updated_at"];
+  
+      const filteredColumns = allColumns.filter(
+        col => !excluded.includes(col.name)
+      );
+  
+      setColumns(filteredColumns);
+    } catch (error) {
+      console.error("Erreur lors du chargement des colonnes :", error);
+    }
+  };
+  
+
+useEffect(() => {
+  fetchColumns();
+  fetchPlans();
+  fetchAudits();
+}, []);
+
 
   const fetchPlans = async () => {
     try {
@@ -39,44 +67,11 @@ const PlanService = () => {
       const response = await api.get(`/plan/plans/`, {
         params: filteredParams,
       });
-      setPlans(response.data);
-  
-      if (response.data.length > 0) {
-        const baseKeys = [
-          "ref", "type_audit", "date_debut", "date_realisation",
-          "duree", "date_fin", "status", "remarques"
-        ];
-  
-        const extraKeys = Object.keys(response.data[0].extra_data || {});
-        setColumns([...baseKeys, ...extraKeys]);
-      }
+      setPlans(response.data);   
     } catch (error) {
       console.error("Erreur lors du chargement des plans :", error);
     }
   };
-  
-  const [selectedPlan, setSelectedPlan] = useState(null);
-
-  const handleEditClick = (plan) => {
-    setSelectedPlan(plan);
-  };
-
-  const handleSetReminder = (plan) => {
-    alert(`Un rappel a été défini pour le plan: ${plan.ref}`);
-    // Ici, tu peux plus tard ajouter une vraie logique de rappel, calendrier, email, etc.
-  };
-  
-
-  useEffect(() => {
-    if (columns.length > 0) {
-      const initialPlan = {};
-      columns.forEach(col => {
-        initialPlan[col] = "";
-      });
-      setNewPlan(initialPlan);
-    }
-  }, [columns]);
-  
 
   const [audits, setAudits] = useState([]);
   const [selectedAuditId, setSelectedAuditId] = useState("");
@@ -89,25 +84,15 @@ const PlanService = () => {
       console.error("Erreur lors du chargement des audits :", error);
     }
   };
-
+  
   useEffect(() => {
-    fetchPlans();
-    fetchAudits();
-  }, []);;  
-
-  useEffect(() => {
-    if (plans.length > 0) {
-      const extraKeys = Object.keys(plans[0].extra_data || {});
-      const newExtraFields = {};
-      extraKeys.forEach(key => {
-        newExtraFields[key] = "";
-      });
-      setNewPlan((prev) => ({
-        ...prev,
-        extra_data: newExtraFields
-      }));
+    if (columns.length > 0) {
+      const initialPlan = {};
+      columns.forEach(col => initialPlan[col.name] = "");
+      setNewPlan(initialPlan);
     }
-  }, [plans]);  
+  }, [columns]);
+  
 
   const handleAuditSelection = (auditId) => {
     const selectedAudit = audits.find((a) => a.id === parseInt(auditId));
@@ -172,6 +157,19 @@ const PlanService = () => {
     }
   };
 
+  const mysqlTypes = [
+    "VARCHAR(255)",
+    "INT",
+    "TEXT",
+    "DATE",
+    "DATETIME",
+    "BOOLEAN",
+    "DECIMAL(10,2)",
+    "FLOAT",
+    "DOUBLE",
+    "CHAR(10)",
+  ];
+
   const [newPlan, setNewPlan] = useState({
     ref: "",
     type_audit: "",
@@ -206,9 +204,34 @@ const PlanService = () => {
   };
 
   const [showNewRow, setShowNewRow] = useState(false);
+  const [newColumn, setNewColumn] = useState({
+    name: "",
+    type: "VARCHAR(255)",
+  });
+  
+  const handleAddColumn = async () => {
+    if (!newColumn.name) {
+      alert("Le nom de la colonne est requis.");
+      return;
+    }
+  
+    try {
+      await api.post("/admin/plan/add-column", {
+        column_name: newColumn.name,
+        column_type: newColumn.type || "VARCHAR(255)",
+      });
+      alert(`Colonne '${newColumn.name}' ajoutée avec succès !`);
+      setNewColumn({ name: "", type: "VARCHAR(255)" });
+      fetchPlans(); // recharger les données si besoin
+    } catch (error) {
+      console.error("Erreur lors de l'ajout de la colonne :", error);
+      alert("Erreur lors de l'ajout de la colonne !");
+    }
+  };
+  
 
   return (
-    <Box sx={{ mt: 4, px: 2, width: '100%' }}>
+    <Container sx={{ mt: 4 }}>
       <Typography variant="h4" gutterBottom>
         Gestion des Plans
       </Typography>
@@ -275,6 +298,43 @@ const PlanService = () => {
       </Paper>
 
       <Paper sx={{ p: 2, mb: 2 }}>
+        <Typography variant="h6">Ajouter une colonne</Typography>
+        <Grid container spacing={2}>
+          <Grid item xs={6} sm={4}>
+            <TextField
+              label="Nom de la colonne"
+              fullWidth
+              value={newColumn.name}
+              onChange={(e) => setNewColumn({ ...newColumn, name: e.target.value })}
+            />
+          </Grid>
+          <Grid item xs={6} sm={4}>
+            <FormControl fullWidth>
+              <InputLabel>Type SQL</InputLabel>
+              <Select
+                value={newColumn.type}
+                onChange={(e) =>
+                  setNewColumn({ ...newColumn, type: e.target.value })
+                }
+                label="Type SQL"
+              >
+                {mysqlTypes.map((type) => (
+                  <MenuItem key={type} value={type}>
+                    {type}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+          </Grid>
+          <Grid item xs={12} sm={4} display="flex" alignItems="center">
+            <Button variant="contained" color="success" onClick={handleAddColumn}>
+              Ajouter la colonne
+            </Button>
+          </Grid>
+        </Grid>
+      </Paper>
+
+      <Paper sx={{ p: 2, mb: 2 }}>
         <Typography variant="h6">Ajouter un audit</Typography>
         <Grid container spacing={2} sx={{ mb: 2 }}>
           <Grid item xs={12} sm={6}>
@@ -303,101 +363,55 @@ const PlanService = () => {
           Aucun plan disponible. Veuillez uploader un fichier Excel.
         </Typography>
       ) : (
-        <TableContainer component={Paper} sx={{ mb: 4, width: '100%', overflowX: 'auto' }}>
-          <Table sx={{ minWidth: 1500 }}>        
+        <TableContainer component={Paper} sx={{ mb: 4 }}>
+          {columns.length === 0 ? (
+  <Typography>Aucune colonne à afficher</Typography>
+) : (
+<Table>
           <TableHead>
             <TableRow>
-                <TableCell>Réf</TableCell>
-                <TableCell>Type Audit</TableCell>
-                <TableCell>Date Début</TableCell>
-                <TableCell>Date de Réalisation</TableCell>
-                <TableCell>Durée</TableCell>
-                <TableCell>Date Fin</TableCell>
-                <TableCell>Statut</TableCell>
-                <TableCell>Remarques</TableCell>
-                {plans.length > 0 && Object.keys(plans[0].extra_data || {}).map((key) => (
-                <TableCell key={key}>{key}</TableCell>
+                {columns.map((col) => (
+                <TableCell key={col.name}>{col.name}</TableCell>
                 ))}
-                <TableCell>Actions</TableCell>
             </TableRow>
             </TableHead>
 
             <TableBody>
-              {plans.map((plan) => (
-                <TableRow key={plan.id}>
-                  <TableCell>{plan.ref}</TableCell>
-                  <TableCell>{plan.type_audit}</TableCell>
-                  <TableCell>{plan.date_debut}</TableCell>
-                  <TableCell>{plan.date_realisation || "-"}</TableCell>
-                  <TableCell>{plan.duree}</TableCell>
-                  <TableCell>{plan.date_fin}</TableCell>
-                  <TableCell>{plan.status}</TableCell>
-                  <TableCell>{plan.remarques}</TableCell>
-                  {Object.entries(plan.extra_data || {}).map(([key, value]) => (
-                    <TableCell key={key}>{value}</TableCell>
-                   ))}
-                   <TableCell>
-                   {selectedPlan && (
-                          <EditPlanForm
-                            plan={selectedPlan}
-                            open={Boolean(selectedPlan)}
-                            onClose={() => setSelectedPlan(null)}
-                            fetchPlans={fetchPlans}
-                          />
-                        )}
-
-                      <Button
-                        variant="outlined"
-                        color="primary"
-                        size="small"
-                        onClick={() => handleEditClick(plan)}
-                        sx={{ mr: 1 }}
-                      >
-                        Modifier
-                      </Button>
-                      <Button
-                        variant="outlined"
-                        color="secondary"
-                        size="small"
-                        onClick={() => handleSetReminder(plan)}
-                      >
-                        Rappel
-                      </Button>
-                    </TableCell>
-                </TableRow>
-              ))}
-              {showNewRow && (
-                <TableRow>
-                  {columns.map((col) => (
-                    <TableCell key={col}>
-                        <Input
-                        fullWidth
-                        placeholder={col.replace("_", " ")}
-                        value={newPlan[col] || ""}
-                        onChange={(e) =>
-                            setNewPlan((prev) => ({
-                            ...prev,
-                            [col]: e.target.value,
-                            }))
-                        }
-                        />
-                    </TableCell>
-                    ))}
-                  <TableCell>
-                    <Button
-                      variant="contained"
-                      color="primary"
-                      onClick={handleAddPlan}
-                      size="small"
-                    >
-                      Enregistrer
-                    </Button>
-                  </TableCell>
-                </TableRow>
-              )}
+            {plans.map((plan) => (
+    <TableRow key={plan.id}>
+      {columns.map((col) => (
+        <TableCell key={col.name}>
+          {plan[col.name] ?? "-"}
+        </TableCell>
+      ))}
+    </TableRow>
+  ))}
+  {showNewRow && (
+    <TableRow>
+      {columns.map((col) => (
+        <TableCell key={col.name}>
+          <Input
+            fullWidth
+            value={newPlan[col.name] || ""}
+            placeholder={col.name}
+            onChange={(e) => setNewPlan({
+              ...newPlan,
+              [col.name]: e.target.value
+            })}
+          />
+        </TableCell>
+      ))}
+      <TableCell>
+        <Button variant="contained" onClick={handleAddPlan}>
+          Enregistrer
+        </Button>
+      </TableCell>
+    </TableRow>
+  )}
             </TableBody>
 
           </Table>
+)}
           <Box sx={{ display: "flex", justifyContent: "flex-end", p: 2 }}>
             <Button
               variant="outlined"
@@ -409,7 +423,7 @@ const PlanService = () => {
           </Box>
         </TableContainer>
       )}
-    </Box>
+    </Container>
   );
 };
 
