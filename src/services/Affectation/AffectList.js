@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from "react";
 import {Container, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, Button, Modal, Box, Typography, Select, MenuItem, FormControl, InputLabel} from "@mui/material";
-import axios from "axios";
 import api from "../../api";
 
 const AffectList = () => {
@@ -14,8 +13,8 @@ const AffectList = () => {
     const fetchData = async () => {
       try {
         const [prestRes, response] = await Promise.all([
-          api.get("/affect/prestataires"),
-          api.get("/affect/affects"),
+          api.get("/affectation/prestataires"),
+          api.get("/affectation/affects"),
         ]);
         console.log("Prestataires:", prestRes.data);
         console.log("Affectations:", response.data);
@@ -65,7 +64,7 @@ const AffectList = () => {
           <TableHead>
             <TableRow>
               <TableCell>ID</TableCell>
-              <TableCell>Audit ID</TableCell>
+              <TableCell>Demande Audit ID</TableCell>
               <TableCell>Prestataire</TableCell>
               <TableCell>Nombre d'Auditeurs</TableCell>
               <TableCell>Actions</TableCell>
@@ -77,7 +76,7 @@ const AffectList = () => {
               .map((affect) => (
                 <TableRow key={affect.id}>
                   <TableCell>{affect.id}</TableCell>
-                  <TableCell>{affect.audit_id}</TableCell>
+                  <TableCell>{affect.demande_audit_id}</TableCell>
                   <TableCell>
                     {prestataires.find((p) => p.id === affect.prestataire_id)?.nom || "N/A"}
                   </TableCell>
@@ -123,11 +122,15 @@ const AffectList = () => {
                   <li key={auditor.id}>{auditor.nom} {auditor.prenom} ({auditor.email})</li>
                 ))}
               </ul>
-              <Typography><strong>IP Adresses:</strong></Typography>
+              <Typography><strong>Les Adresses IPs:</strong></Typography>
               <ul>
-                {selectedAffectation.ips.map((ip, index) => (
-                  <li key={index}>{ip.adresse_ip} - Port: {ip.port}</li>
-                ))}
+                <ul>
+                  {selectedAffectation.ips.map((ip, index) => (
+                    <li key={index}>
+                      {ip.adresse_ip} : {ip.ports.map(port => port.port).join(", ")}
+                    </li>
+                  ))}
+                </ul>
               </ul>
               {selectedAffectation.affectationpath && (
                 <Typography>
