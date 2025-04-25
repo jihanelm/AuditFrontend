@@ -1,9 +1,12 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import { useLocation } from "react-router-dom";
-import { Box, Container, Typography, TextField, Button, Select, MenuItem, FormControl, InputLabel, Card, Grid, CardContent, Checkbox, Dialog, DialogTitle, DialogContent, DialogActions, } from "@mui/material";
+import { Box, Container, Typography, TextField, Button, 
+  Select, MenuItem, FormControl, InputLabel, Card, Grid, 
+  CardContent, Checkbox, Dialog, DialogTitle, DialogContent, 
+  DialogActions, Table, TableBody, TableCell, TableRow,
+} from "@mui/material";
 import { DataGrid } from "@mui/x-data-grid";
 import api from "../../api";
-import axios from "axios";
 
 const AffectationForm = () => {
   const location = useLocation();
@@ -18,26 +21,14 @@ const AffectationForm = () => {
   const [ips, setIps] = useState([{ adresse_ip: "", ports: [""] }]);
   const [affectationFile, setAffectationFile] = useState(null);
   const [editingAuditeur, setEditingAuditeur] = useState(null);
+  const [selectedTypeAudit, setSelectedTypeAudit] = useState("");
 
   // États pour ajout d'auditeur manuel
   const [manualAuditor, setManualAuditor] = useState({ nom: "", prenom: "", email: "", phone: "", prestataire_id: selectedPrestataire});
   const [manualPrestataire, setManualPrestataire] = useState({ nom: ""});
 
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const [prestRes, auditeursRes] = await Promise.all([
-          api.get("/affect/prestataires"),
-          api.get("/affect/auditeurs"),
-        ]);
-        setPrestataires(prestRes.data);
-        setAuditeurs(auditeursRes.data);
-      } catch (error) {
-        console.error("Error fetching data:", error);
-      }
-    };
-    fetchData();
-  }, []);
+  
+ 
 
   // Mettre à jour `prestataire_id` lorsque `selectedPrestataire` change
   useEffect(() => {
@@ -48,15 +39,26 @@ const AffectationForm = () => {
     setIps([...ips, { adresse_ip: "", ports: [""] }]);
   };
 
+  useEffect(() => {
+    const fetchData = async () => {
+      await fetchPrestataires();
+      await fetchAuditeurs();
+    };
+    fetchData();
+  }, []);
+
   // Ajouter un auditeur manuellement
   const handleAddAuditor = async () => {
     if (!manualAuditor.nom || !manualAuditor.prenom || !manualAuditor.email || !manualAuditor.phone) {
-      alert("Veuillez remplir tous les champs de l'auditeur.");
+      <TextField
+        error={!manualAuditor.nom}
+        helperText={!manualAuditor.nom ? "Le nom est requis" : ""}
+      />
       return;
     }
 
     try {
-      const response = await api.post("/affect/auditeurs", manualAuditor);
+      const response = await api.post("/affectation/auditeurs", manualAuditor);
       setAuditeurs([...auditeurs, response.data]);
       setSelectedAuditeurs([...selectedAuditeurs, response.data.id]);
       setManualAuditor({ nom: "", prenom: "", email: "", phone: "", prestataire_id: selectedPrestataire });
@@ -66,11 +68,11 @@ const AffectationForm = () => {
     }
   };
 
-  const handleToggle = (id) => {
+  const handleToggle = useCallback((id) => {
     setSelectedAuditeurs((prev) =>
       prev.includes(id) ? prev.filter((a) => a !== id) : [...prev, id]
     );
-  };
+  }, []);
 
   // Confirmation suppression
   const confirmDelete = (auditeur) => {
@@ -80,7 +82,7 @@ const AffectationForm = () => {
   // Suppression de l’auditeur après confirmation
   const handleDelete = async () => {
     try {
-      await api.delete(`/affect/auditeurs/${auditeurToDelete.id}`);
+      await api.delete(`/affectation/auditeurs/${auditeurToDelete.id}`);
       setAuditeurs(auditeurs.filter((a) => a.id !== auditeurToDelete.id));
       setSelectedAuditeurs(selectedAuditeurs.filter((id) => id !== auditeurToDelete.id));
       setAuditeurToDelete(null);
@@ -98,9 +100,9 @@ const AffectationForm = () => {
     }
 
     try {
-      const response = await api.post("/affect/prestataires", manualPrestataire);
+      const response = await api.post("/affectation/prestataires", manualPrestataire);
       setPrestataires([...prestataires, response.data]);
-      setSelectedPrestataire([...selectedPrestataire, response.data.id]);
+      setSelectedPrestataire(response.data.id);
       setManualPrestataire({ nom: ""});
     } catch (error) {
       console.error("Erreur lors de l'ajout du prestataire:", error);
@@ -130,13 +132,16 @@ const AffectationForm = () => {
     const updated = [...ips];
     updated[ipIndex].ports.splice(portIndex, 1);
     setIps(updated);
+    if (updated[ipIndex].ports.length > 1) {
+      updated[ipIndex].ports.splice(portIndex, 1);
+    }    
   };
 
   const ipsFormatted = ips.map(ip => ({
     adresse_ip: ip.adresse_ip,
     ports: ip.ports.map(port => ({
-      numero: parseInt(port), // ou conserver en string si backend accepte
-      status: "open", // ou gérer depuis le formulaire
+      port: isNaN(parseInt(port)) ? 0 : parseInt(port),
+      status: "open",
     }))
   }));
     
@@ -144,7 +149,8 @@ const AffectationForm = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     const affectationData = {
-      audit_id: auditData.id,
+      type_audit: selectedTypeAudit,
+      demande_audit_id: auditData.id,
       prestataire_id: selectedPrestataire,
       auditeurs: selectedAuditeurs.map((id) => {
         const auditor = auditeurs.find((a) => a.id === id);
@@ -160,7 +166,7 @@ const AffectationForm = () => {
     };
 
     try {
-      const response = await api.post("/affect/affects", affectationData, {
+      const response = await api.post("/affectation/affects", affectationData, {
         headers: {"Content-Type": "application/json"},
       });
       alert("Affectation créée avec succès !");
@@ -171,16 +177,10 @@ const AffectationForm = () => {
       console.log("Affectation Data: ", affectationData);
     }
   };
-
-    
-      useEffect(() => {
-        fetchAuditeurs();
-        fetchPrestataires();
-      }, []);
     
       const fetchAuditeurs = async () => {
         try {
-          const response = await api.get("/affect/auditeurs/");
+          const response = await api.get("/affectation/auditeurs/");
           setAuditeurs(response.data);
         } catch (error) {
           console.error("Erreur fetchAuditeurs :", error);
@@ -189,7 +189,7 @@ const AffectationForm = () => {
       
       const fetchPrestataires = async () => {
         try {
-          const response = await api.get("/affect/prestataires/");
+          const response = await api.get("/affectation/prestataires/");
           setPrestataires(response.data);
         } catch (error) {
           console.error("Erreur fetchPrestataires :", error);
@@ -207,11 +207,17 @@ const AffectationForm = () => {
             phone: auditeur.phone,
             prestataire_id: auditeur.prestataire_id
           };
-      
+          await api.put(`/affectation/auditeurs/${auditeur.id}`, updatedData);
+          setAuditeurs((prev) =>
+            prev.map((a) => (a.id === auditeur.id ? { ...a, ...updatedData } : a))
+          );
+          setEditingAuditeur(null);
         } catch (error) {
           console.error("Erreur handleUpdate :", error.response?.data || error.message);
+          alert("Erreur lors de la mise à jour de l'auditeur.");
         }
       };
+      
        
     
       const filteredAuditeurs = selectedPrestataire
@@ -264,6 +270,10 @@ const AffectationForm = () => {
           },
         ];
 
+        const isAuditorValid = (auditeur) =>
+          auditeur.nom && auditeur.prenom && auditeur.email && auditeur.phone;
+        
+
   return (
     <Container>
       <Typography variant="h4" gutterBottom>
@@ -272,54 +282,127 @@ const AffectationForm = () => {
 
       {/* Informations de l'audit */}
       <Card variant="outlined" sx={{ mb: 3, p: 2 }}>
-        <CardContent>
-            <Typography variant="h6" gutterBottom>
-                Informations de l'Audit
-            </Typography>
-            <Grid container spacing={2}>
-                <Grid item xs={12} sm={6}>
-                    <Typography><strong>Nom :</strong> {auditData.demandeur_nom}</Typography>
-                </Grid>
-                <Grid item xs={12} sm={6}>
-                    <Typography><strong>Prénom :</strong> {auditData.demandeur_prenom}</Typography>
-                </Grid>
-                <Grid item xs={12} sm={6}>
-                    <Typography><strong>Email :</strong> {auditData.demandeur_email}</Typography>
-                </Grid>
-                <Grid item xs={12} sm={6}>
-                    <Typography><strong>Téléphone :</strong> {auditData.demandeur_phone}</Typography>
-                </Grid>
-                <Grid item xs={12} sm={6}>
-                    <Typography><strong>Département :</strong> {auditData.demandeur_departement}</Typography>
-                </Grid>
-                <Grid item xs={12} sm={6}>
-                    <Typography><strong>Type d'audit :</strong> {auditData.type_audit}</Typography>
-                </Grid>
-                <Grid item xs={12}>
-                    <Typography><strong>Description :</strong> {auditData.description}</Typography>
-                </Grid>
-                <Grid item xs={12}>
-                    <Typography><strong>Objectif :</strong> {auditData.objectif}</Typography>
-                </Grid>
-                <Grid item xs={12}>
-                    <Typography><strong>Urgence :</strong> {auditData.urgence}</Typography>
-                </Grid>
-                <Grid item xs={12}>
-                    <Typography><strong>Domain Name :</strong> {auditData.domain_name}</Typography>
-                </Grid>
-                <Grid item xs={12}>
-                    <Typography><strong>Fichier :</strong> <a href={`http://localhost:8000/${auditData.fichier_attache}`} target="_blank" rel="noopener noreferrer">Télécharger</a> </Typography>
-                </Grid>
-                
-            </Grid>
-          </CardContent>
+      <CardContent>
+        <Typography variant="h6" gutterBottom>
+          Informations de l'Audit
+        </Typography>
+        <Table>
+          <TableBody>
+            <TableRow>
+              <TableCell colSpan={2}><strong>Contact Primaire</strong></TableCell>
+            </TableRow>
+            <TableRow>
+              <TableCell><strong>Nom :</strong></TableCell>
+              <TableCell>{auditData.demandeur_nom_1}</TableCell>
+            </TableRow>
+            <TableRow>
+              <TableCell><strong>Prénom :</strong></TableCell>
+              <TableCell>{auditData.demandeur_prenom_1}</TableCell>
+            </TableRow>
+            <TableRow>
+              <TableCell><strong>Email :</strong></TableCell>
+              <TableCell>{auditData.demandeur_email_1}</TableCell>
+            </TableRow>
+            <TableRow>
+              <TableCell><strong>Téléphone :</strong></TableCell>
+              <TableCell>{auditData.demandeur_phone_1}</TableCell>
+            </TableRow>
+            <TableRow>
+              <TableCell><strong>Entité :</strong></TableCell>
+              <TableCell>{auditData.demandeur_entite_1}</TableCell>
+            </TableRow>
+
+            <TableRow>
+              <TableCell colSpan={2}><strong>Contact Secondaire</strong></TableCell>
+            </TableRow>
+            <TableRow>
+              <TableCell><strong>Nom :</strong></TableCell>
+              <TableCell>{auditData.demandeur_nom_2}</TableCell>
+            </TableRow>
+            <TableRow>
+              <TableCell><strong>Prénom :</strong></TableCell>
+              <TableCell>{auditData.demandeur_prenom_2}</TableCell>
+            </TableRow>
+            <TableRow>
+              <TableCell><strong>Email :</strong></TableCell>
+              <TableCell>{auditData.demandeur_email_2}</TableCell>
+            </TableRow>
+            <TableRow>
+              <TableCell><strong>Téléphone :</strong></TableCell>
+              <TableCell>{auditData.demandeur_phone_2}</TableCell>
+            </TableRow>
+            <TableRow>
+              <TableCell><strong>Entité :</strong></TableCell>
+              <TableCell>{auditData.demandeur_entite_2}</TableCell>
+            </TableRow>
+
+            <TableRow>
+              <TableCell><strong>Nom de l'Application :</strong></TableCell>
+              <TableCell>{auditData.nom_app}</TableCell>
+            </TableRow>
+            <TableRow>
+              <TableCell><strong>Type d'audit :</strong></TableCell>
+              <TableCell>{auditData.type_audit}</TableCell>
+            </TableRow>
+            <TableRow>
+              <TableCell><strong>Description :</strong></TableCell>
+              <TableCell>{auditData.description}</TableCell>
+            </TableRow>
+            <TableRow>
+              <TableCell><strong>Urgence :</strong></TableCell>
+              <TableCell>{auditData.urgence}</TableCell>
+            </TableRow>
+            <TableRow>
+              <TableCell><strong>Nom Domaine :</strong></TableCell>
+              <TableCell>{auditData.nom_domaine}</TableCell>
+            </TableRow>
+            <TableRow>
+              <TableCell><strong>Fichiers :</strong></TableCell>
+              <TableCell>
+                <ul>
+                  {auditData.fichiers_attaches.map((file, idx) => (
+                    <li key={idx}>
+                      <a href={`http://localhost:8000/${file}`} target="_blank" rel="noopener noreferrer">
+                        Télécharger fichier {idx + 1}
+                      </a>
+                    </li>
+                  ))}
+                </ul>
+              </TableCell>
+            </TableRow>
+            <TableRow>
+              <TableCell><strong>Voir la demande d'audit :</strong></TableCell>
+              <TableCell>
+                <a href={`http://localhost:8000/${auditData.fiche_demande_path}`} target="_blank" rel="noopener noreferrer">
+                  Télécharger
+                </a>
+              </TableCell>
+            </TableRow>
+          </TableBody>
+        </Table>
+      </CardContent>
     </Card>
 
       {/* Formulaire d'affectation */}
       <form onSubmit={handleSubmit}>
+      <FormControl fullWidth margin="normal">
+      <InputLabel>Type d'audit</InputLabel>
+      <Select
+        value={selectedTypeAudit}
+        onChange={(e) => setSelectedTypeAudit(e.target.value)}
+        required
+      >
+        <MenuItem value="Audit Pentest">Audit Pentest</MenuItem>
+        <MenuItem value="Audit Architecture">Audit Architecture</MenuItem>
+        <MenuItem value="Audit Configuration">Audit Configuration</MenuItem>
+        <MenuItem value="Audit Réseau">Audit Réseau</MenuItem>
+        <MenuItem value="Audit Code Source">Audit Code Source</MenuItem>
+      </Select>
+    </FormControl>
+
         <FormControl fullWidth margin="normal">
           <InputLabel>Prestataire</InputLabel>
-          <Select value={selectedPrestataire} onChange={(e) => setSelectedPrestataire(e.target.value)}>
+          <Select value={selectedPrestataire || ""} onChange={(e) => setSelectedPrestataire(e.target.value)}>
             {prestataires.map((p) => (
               <MenuItem key={p.id} value={p.id}>
                 {p.nom}
@@ -489,9 +572,6 @@ const AffectationForm = () => {
         )}  
       
       </form>
-        
-
-      
     </Container>
   );
 };

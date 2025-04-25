@@ -4,8 +4,8 @@ import { ThemeProvider, createTheme, CssBaseline, Box, Container } from '@mui/ma
 
 import Main from './layout/components/Main';
 
-import AuditRequest from './services/AuditRequest/AuditRequestForm';
-import AuditList from './services/AuditRequest/AuditList';
+import AuditRequest from './services/AuditRequest/AuditRequest';
+import DemandeList from './services/AuditRequest/DemandeList';
 
 import AffectationForm from './services/Affectation/AffectationForm';
 import AffectList from './services/Affectation/AffectList';
@@ -53,8 +53,8 @@ function App() {
             <Routes>
               <Route path="/" element={<Main />} />
 
-              <Route path="/request" element={<AuditRequest />} />
-              <Route path="/audit-list" element={<AuditList />} />
+              <Route path="/demande" element={<AuditRequest />} />
+              <Route path="/demande-list" element={<DemandeList />} />
 
               <Route path="/assign" element={<AffectationForm />} />
               <Route path="/affect-list" element={<AffectList />} />
