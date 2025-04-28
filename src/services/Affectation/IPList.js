@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from "react";
 import { TextField, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, Button, Typography } from "@mui/material";
-import axios from "axios";
 import api from "../../api";
 
 const IPList = () => {
@@ -8,7 +7,7 @@ const IPList = () => {
   const [search, setSearch] = useState("");
 
   useEffect(() => {
-    api.get("/affect/ips")
+    api.get("/affectation/ips")
       .then(response => {
         console.log("API Response:", response.data);
         setIps(response.data);
@@ -37,7 +36,7 @@ const IPList = () => {
               <TableCell>Adresse IP</TableCell>
               <TableCell>Port</TableCell>
               <TableCell>Status</TableCell>
-              <TableCell>Affect ID</TableCell>
+              <TableCell>Affectation ID</TableCell>
               <TableCell>Action</TableCell>
             </TableRow>
           </TableHead>
@@ -47,11 +46,14 @@ const IPList = () => {
                 <TableCell>{ip.id}</TableCell>
                 <TableCell>{ip.adresse_ip}</TableCell>
                 <TableCell>
-                  {Array.isArray(ip.ports) ? ip.ports.join(", ") : ip.port || "-"}
+                  {Array.isArray(ip.ports) && ip.ports.length > 0
+                    ? ip.ports.map((p) => p.port).join(", ")
+                    : "-"}
                 </TableCell>
                 <TableCell>{ip.status}</TableCell>
-                <TableCell>{ip.affect_id}</TableCell>
+                <TableCell>{ip.affectation_id}</TableCell>
                 <TableCell>
+                  <Button variant="contained" color="primary" size="small">Voir Audit</Button>
                   <Button variant="contained" color="error" size="small">Fermer</Button>
                 </TableCell>
               </TableRow>

@@ -26,6 +26,7 @@ import Dashboard from './services/Dashboard/Dashboard';
 
 import Landing from './layout/components/Landing';
 import Footer from './layout/components/Footer';
+import AuditList from './services/Audit/AuditList';
 
 const theme = createTheme({
   palette: {
@@ -70,6 +71,7 @@ function App() {
               <Route path='/plan' element={<PlanService />} />
 
               <Route path='/list' element={<ListesAudit />} />
+              <Route path='/list1' element={<AuditList />} />
 
               <Route path='/dash' element={<Dashboard />} />
 

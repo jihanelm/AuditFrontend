@@ -29,7 +29,7 @@ export default function AuditeurPage() {
 
   const fetchAuditeurs = async () => {
     try {
-      const response = await api.get("/affect/auditeurs/");
+      const response = await api.get("/affectation/auditeurs/");
       setAuditeurs(response.data);
     } catch (error) {
       console.error("Erreur fetchAuditeurs :", error);
@@ -38,7 +38,7 @@ export default function AuditeurPage() {
   
   const fetchPrestataires = async () => {
     try {
-      const response = await api.get("/affect/prestataires/");
+      const response = await api.get("/affectation/prestataires/");
       setPrestataires(response.data);
     } catch (error) {
       console.error("Erreur fetchPrestataires :", error);
@@ -46,7 +46,7 @@ export default function AuditeurPage() {
   };  
 
   const handleDelete = async (id) => {
-    await api.delete(`/affect/auditeurs/${id}`);
+    await api.delete(`/affectation/auditeurs/${id}`);
     fetchAuditeurs();
   };
 

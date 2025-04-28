@@ -553,12 +553,27 @@ const AffectationForm = () => {
           </Card>
         ))}
 
-        <Button onClick={addIp} variant="contained" color="primary" style={{ marginTop: 10 }}>+ Ajouter une IP</Button>
-        <Button type="submit" variant="contained" color="primary" style={{ marginTop: "10px", marginLeft: "120px" }}>
-          Valider l'affectation
+      <Box display="flex" flexDirection="column" gap={2}>
+        <Button 
+          onClick={addIp} 
+          variant="contained" 
+          color="primary"
+          style={{ marginTop: 10 }}
+        >
+          + Ajouter une IP
         </Button>
 
-        
+        <Box display="flex" justifyContent="flex-end">
+          <Button 
+            type="submit" 
+            variant="contained" 
+            color="primary" 
+            style={{ marginTop: "10px" }}
+          >
+            Valider l'affectation
+          </Button>
+        </Box>
+
         {affectationFile && (
           <Button
             variant="contained"
@@ -569,8 +584,8 @@ const AffectationForm = () => {
           >
             Voir la fiche d’affectation
           </Button>
-        )}  
-      
+        )}
+      </Box>      
       </form>
     </Container>
   );
