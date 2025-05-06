@@ -1,5 +1,3 @@
-// PlanServiceV2 + ajout des colonnes
-
 import React, { useState, useEffect } from "react";
 import {
   Typography,
@@ -15,9 +13,17 @@ import {
   Input,
   Grid,
   Box,
+  Dialog,
+  DialogActions,
+  DialogTitle,
+  DialogContent,
+  Select,
+  MenuItem,
+  FormControl,
+  InputLabel,
 } from "@mui/material";
 import api from "../../api";
-import EditPlanForm from "./EditPlanForm"
+import EditPlanForm from "./EditPlanForm";
 
 const PlanService = () => {
   const [file, setFile] = useState(null);
@@ -25,11 +31,38 @@ const PlanService = () => {
   const [filters, setFilters] = useState({
     month: "",
     year: "",
-    status: "",
+    date_realisation: "",
+    date_cloture: "",
+    date_rapport: "",
     type_audit: "",
   });
 
-  const [columns, setColumns] = useState([]); 
+  const [columns, setColumns] = useState([]);
+  const [selectedPlan, setSelectedPlan] = useState(null);
+  const [audits, setAudits] = useState([]);
+  const [selectedAuditId, setSelectedAuditId] = useState("");
+  const [newPlan, setNewPlan] = useState({
+    ref: "",
+    application: "",
+    type_application: "",
+    type_audit: "",
+    date_realisation: "",
+    date_cloture: "",
+    date_rapport: "",
+    niveau_securite: "",
+    nb_vulnerabilites: "",
+    taux_remediation: "",
+    commentaire_dcsg: "",
+    commentaire_cp: "",
+  });
+  const [showNewRow, setShowNewRow] = useState(false);
+  const [selectedVulns, setSelectedVulns] = useState([]);
+  const [vulnDialogOpen, setVulnDialogOpen] = useState(false);
+
+  useEffect(() => {
+    fetchPlans();
+    fetchAudits();
+  }, []);
 
   const fetchPlans = async () => {
     try {
@@ -40,13 +73,12 @@ const PlanService = () => {
         params: filteredParams,
       });
       setPlans(response.data);
-  
+
       if (response.data.length > 0) {
         const baseKeys = [
-          "ref", "type_audit", "date_debut", "date_realisation",
-          "duree", "date_fin", "status", "remarques"
+          "ref", "application", "type_audit", "date_realisation", "date_cloture", "date_rapport",
+          "niveau_securite", "nb_vulnerabilites", "taux_remediation", "commentaire_dcsg", "commentaire_cp"
         ];
-  
         const extraKeys = Object.keys(response.data[0].extra_data || {});
         setColumns([...baseKeys, ...extraKeys]);
       }
@@ -54,36 +86,10 @@ const PlanService = () => {
       console.error("Erreur lors du chargement des plans :", error);
     }
   };
-  
-  const [selectedPlan, setSelectedPlan] = useState(null);
-
-  const handleEditClick = (plan) => {
-    setSelectedPlan(plan);
-  };
-
-  const handleSetReminder = (plan) => {
-    alert(`Un rappel a été défini pour le plan: ${plan.ref}`);
-    // Ici, tu peux plus tard ajouter une vraie logique de rappel, calendrier, email, etc.
-  };
-  
-
-  useEffect(() => {
-    if (columns.length > 0) {
-      const initialPlan = {};
-      columns.forEach(col => {
-        initialPlan[col] = "";
-      });
-      setNewPlan(initialPlan);
-    }
-  }, [columns]);
-  
-
-  const [audits, setAudits] = useState([]);
-  const [selectedAuditId, setSelectedAuditId] = useState("");
 
   const fetchAudits = async () => {
     try {
-      const response = await api.get("/audits/");
+      const response = await api.get("/audits");
       setAudits(response.data);
     } catch (error) {
       console.error("Erreur lors du chargement des audits :", error);
@@ -91,28 +97,16 @@ const PlanService = () => {
   };
 
   useEffect(() => {
-    fetchPlans();
-    fetchAudits();
-  }, []);;  
-
-  useEffect(() => {
-    if (plans.length > 0) {
-      const extraKeys = Object.keys(plans[0].extra_data || {});
-      const newExtraFields = {};
-      extraKeys.forEach(key => {
-        newExtraFields[key] = "";
-      });
-      setNewPlan((prev) => ({
-        ...prev,
-        extra_data: newExtraFields
-      }));
+    if (columns.length > 0) {
+      const initialPlan = {};
+      columns.forEach(col => initialPlan[col] = "");
+      setNewPlan(initialPlan);
     }
-  }, [plans]);  
+  }, [columns]);
 
   const handleAuditSelection = (auditId) => {
     const selectedAudit = audits.find((a) => a.id === parseInt(auditId));
     setSelectedAuditId(auditId);
-  
     if (selectedAudit) {
       setNewPlan((prev) => ({
         ...prev,
@@ -121,31 +115,22 @@ const PlanService = () => {
       }));
       setShowNewRow(true);
     }
-  };  
-
-  const handleFileChange = (event) => {
-    setFile(event.target.files[0]);
   };
 
-  const handleUpload = async () => {
-    if (!file) {
-      alert("Veuillez sélectionner un fichier avant d'uploader.");
-      return;
-    }
+  const handleFileChange = (event) => setFile(event.target.files[0]);
 
+  const handleUpload = async () => {
+    if (!file) return alert("Veuillez sélectionner un fichier avant d'uploader.");
     const formData = new FormData();
     formData.append("file", file);
-
     try {
       await api.post(`/plan/upload`, formData, {
-        headers: {
-          "Content-Type": "multipart/form-data",
-        },
+        headers: { "Content-Type": "multipart/form-data" },
       });
       alert("Fichier uploadé avec succès !");
       fetchPlans();
     } catch (error) {
-      console.error("Erreur lors de l'importation :", error.response?.data || error.message);
+      console.error("Erreur lors de l'importation :", error);
       alert("Erreur lors de l'importation !");
     }
   };
@@ -155,12 +140,10 @@ const PlanService = () => {
       const filteredParams = Object.fromEntries(
         Object.entries(filters).filter(([_, v]) => v !== "")
       );
-
       const response = await api.get(`/plan/plans/download/`, {
         params: filteredParams,
         responseType: "blob",
       });
-
       const url = window.URL.createObjectURL(new Blob([response.data]));
       const link = document.createElement("a");
       link.href = url;
@@ -172,32 +155,11 @@ const PlanService = () => {
     }
   };
 
-  const [newPlan, setNewPlan] = useState({
-    ref: "",
-    type_audit: "",
-    date_debut: "",
-    date_realisation: "",
-    duree: "",
-    date_fin: "",
-    status: "",
-    remarques: "",
-  });
-
   const handleAddPlan = async () => {
     try {
       await api.post(`/plan/plan/`, newPlan);
       fetchPlans();
-      setNewPlan({
-        ref: "",
-        type_audit: "",
-        date_debut: "",
-        date_realisation: "",
-        duree: "",
-        date_fin: "",
-        status: "",
-        remarques: "",
-        audit_id: selectedAuditId ? parseInt(selectedAuditId) : null,
-      });
+      setNewPlan({});
       setShowNewRow(false);
     } catch (error) {
       console.error("Erreur lors de l'ajout :", error);
@@ -205,210 +167,166 @@ const PlanService = () => {
     }
   };
 
-  const [showNewRow, setShowNewRow] = useState(false);
+  const handleEditClick = (plan) => setSelectedPlan(plan);
+
+  const handleSetReminder = (plan) => alert(`Un rappel a été défini pour le plan: ${plan.ref}`);
+
+  const handleShowVulns = (vulns) => {
+    setSelectedVulns(vulns || []);
+    setVulnDialogOpen(true);
+  };
 
   return (
     <Box sx={{ mt: 4, px: 2, width: '100%' }}>
-      <Typography variant="h4" gutterBottom>
-        Gestion des Plans
-      </Typography>
+      <Typography variant="h4" gutterBottom>Gestion des Plans</Typography>
 
       <Paper sx={{ p: 2, mb: 2 }}>
         <Typography variant="h6">Uploader un fichier Excel</Typography>
-        <Box display="flex" alignItems="center">
+        <Box display="flex" gap={2} alignItems="center">
           <Input type="file" onChange={handleFileChange} />
-          <Button
-            variant="contained"
-            color="primary"
-            onClick={handleUpload}
-            sx={{ ml: 2 }}
-          >
-            Uploader
-          </Button>
+          <Button variant="contained" onClick={handleUpload}>Uploader</Button>
         </Box>
       </Paper>
 
       <Paper sx={{ p: 2, mb: 2 }}>
         <Typography variant="h6">Filtres</Typography>
-        <Grid container spacing={2} sx={{ mb: 2 }}>
-          <Grid item xs={6} sm={3}>
-            <TextField
-              label="Mois"
-              fullWidth
-              value={filters.month}
-              onChange={(e) => setFilters({ ...filters, month: e.target.value })}
-            />
-          </Grid>
-          <Grid item xs={6} sm={3}>
-            <TextField
-              label="Année"
-              fullWidth
-              value={filters.year}
-              onChange={(e) => setFilters({ ...filters, year: e.target.value })}
-            />
-          </Grid>
-          <Grid item xs={6} sm={3}>
-            <TextField
-              label="Statut"
-              fullWidth
-              value={filters.status}
-              onChange={(e) => setFilters({ ...filters, status: e.target.value })}
-            />
-          </Grid>
-          <Grid item xs={6} sm={3}>
-            <TextField
-              label="Type d'Audit"
-              fullWidth
-              value={filters.type_audit}
-              onChange={(e) => setFilters({ ...filters, type_audit: e.target.value })}
-            />
-          </Grid>
+        <Grid container spacing={2}>
+          {Object.keys(filters).map((key) => (
+            <Grid item xs={12} sm={6} md={3} key={key}>
+              <TextField
+                label={key.replace(/_/g, ' ')}
+                fullWidth
+                value={filters[key]}
+                onChange={(e) => setFilters({ ...filters, [key]: e.target.value })}
+              />
+            </Grid>
+          ))}
         </Grid>
-        <Box display="flex" gap={2}>
-          <Button variant="contained" onClick={fetchPlans}>
-            Appliquer les filtres
-          </Button>
-          <Button variant="contained" color="secondary" onClick={downloadPlans}>
-            Télécharger
-          </Button>
+        <Box mt={2} display="flex" gap={2}>
+          <Button variant="contained" onClick={fetchPlans}>Appliquer les filtres</Button>
+          <Button variant="outlined" onClick={downloadPlans}>Télécharger</Button>
         </Box>
       </Paper>
 
       <Paper sx={{ p: 2, mb: 2 }}>
         <Typography variant="h6">Ajouter un audit</Typography>
-        <Grid container spacing={2} sx={{ mb: 2 }}>
-          <Grid item xs={12} sm={6}>
-            <TextField
-              select
-              value={selectedAuditId}
-              onChange={(e) => handleAuditSelection(e.target.value)}
-              fullWidth
-              SelectProps={{
-                native: true,
-              }}
-            >
-              <option value="">-- Choisir un audit --</option>
-              {audits.map((audit) => (
-                <option key={audit.id} value={audit.id}>
-                  [{audit.id}] {audit.type_audit}
-                </option>
-              ))}
-            </TextField>
-          </Grid>
-        </Grid>
+        <FormControl fullWidth>
+          <InputLabel>Choisir un audit</InputLabel>
+          <Select value={selectedAuditId} onChange={(e) => handleAuditSelection(e.target.value)}>
+            <MenuItem value=""><em>None</em></MenuItem>
+            {audits.map((audit) => (
+              <MenuItem key={audit.id} value={audit.id}>
+                [{audit.id}] {audit.type_audit}
+              </MenuItem>
+            ))}
+          </Select>
+        </FormControl>
       </Paper>
 
       {plans.length === 0 ? (
-        <Typography variant="body1" sx={{ mt: 2 }}>
-          Aucun plan disponible. Veuillez uploader un fichier Excel.
-        </Typography>
+        <Typography>Aucun plan disponible.</Typography>
       ) : (
-        <TableContainer component={Paper} sx={{ mb: 4, width: '100%', overflowX: 'auto' }}>
-          <Table sx={{ minWidth: 1500 }}>        
-          <TableHead>
-            <TableRow>
-                <TableCell>Réf</TableCell>
-                <TableCell>Type Audit</TableCell>
-                <TableCell>Date Début</TableCell>
-                <TableCell>Date de Réalisation</TableCell>
-                <TableCell>Durée</TableCell>
-                <TableCell>Date Fin</TableCell>
-                <TableCell>Statut</TableCell>
-                <TableCell>Remarques</TableCell>
-                {plans.length > 0 && Object.keys(plans[0].extra_data || {}).map((key) => (
-                <TableCell key={key}>{key}</TableCell>
+        <TableContainer component={Paper} sx={{ mb: 4, overflowX: "auto" }}>
+          <Table>
+            <TableHead>
+              <TableRow>
+                {columns.map((col) => (
+                  <TableCell key={col}>{col.replace(/_/g, ' ')}</TableCell>
                 ))}
+                <TableCell>Vulnérabilités</TableCell>
                 <TableCell>Actions</TableCell>
-            </TableRow>
+              </TableRow>
             </TableHead>
-
             <TableBody>
               {plans.map((plan) => (
                 <TableRow key={plan.id}>
-                  <TableCell>{plan.ref}</TableCell>
-                  <TableCell>{plan.type_audit}</TableCell>
-                  <TableCell>{plan.date_debut}</TableCell>
-                  <TableCell>{plan.date_realisation || "-"}</TableCell>
-                  <TableCell>{plan.duree}</TableCell>
-                  <TableCell>{plan.date_fin}</TableCell>
-                  <TableCell>{plan.status}</TableCell>
-                  <TableCell>{plan.remarques}</TableCell>
-                  {Object.entries(plan.extra_data || {}).map(([key, value]) => (
-                    <TableCell key={key}>{value}</TableCell>
-                   ))}
-                   <TableCell>
-                   {selectedPlan && (
-                          <EditPlanForm
-                            plan={selectedPlan}
-                            open={Boolean(selectedPlan)}
-                            onClose={() => setSelectedPlan(null)}
-                            fetchPlans={fetchPlans}
-                          />
-                        )}
-
-                      <Button
-                        variant="outlined"
-                        color="primary"
-                        size="small"
-                        onClick={() => handleEditClick(plan)}
-                        sx={{ mr: 1 }}
-                      >
-                        Modifier
-                      </Button>
-                      <Button
-                        variant="outlined"
-                        color="secondary"
-                        size="small"
-                        onClick={() => handleSetReminder(plan)}
-                      >
-                        Rappel
-                      </Button>
-                    </TableCell>
+                  {columns.map((col) => (
+                    <TableCell key={col}>{plan[col]}</TableCell>
+                  ))}
+                  <TableCell>
+                    <Button variant="outlined" size="small" onClick={() => handleShowVulns(plan.vulnerabilites)}>
+                      Voir
+                    </Button>
+                  </TableCell>
+                  <TableCell>
+                    <Button variant="outlined" size="small" onClick={() => handleEditClick(plan)} sx={{ mr: 1 }}>
+                      Modifier
+                    </Button>
+                    <Button variant="outlined" size="small" color="secondary" onClick={() => handleSetReminder(plan)}>
+                      Rappel
+                    </Button>
+                    {selectedPlan && selectedPlan.id === plan.id && (
+                      <EditPlanForm
+                        plan={selectedPlan}
+                        open={Boolean(selectedPlan)}
+                        onClose={() => setSelectedPlan(null)}
+                        fetchPlans={fetchPlans}
+                      />
+                    )}
+                  </TableCell>
                 </TableRow>
               ))}
               {showNewRow && (
                 <TableRow>
                   {columns.map((col) => (
                     <TableCell key={col}>
-                        <Input
+                      <Input
                         fullWidth
                         placeholder={col.replace("_", " ")}
                         value={newPlan[col] || ""}
-                        onChange={(e) =>
-                            setNewPlan((prev) => ({
-                            ...prev,
-                            [col]: e.target.value,
-                            }))
-                        }
-                        />
+                        onChange={(e) => setNewPlan({ ...newPlan, [col]: e.target.value })}
+                      />
                     </TableCell>
-                    ))}
-                  <TableCell>
-                    <Button
-                      variant="contained"
-                      color="primary"
-                      onClick={handleAddPlan}
-                      size="small"
-                    >
-                      Enregistrer
-                    </Button>
+                  ))}
+                  <TableCell colSpan={2}>
+                    <Button variant="contained" size="small" onClick={handleAddPlan}>Enregistrer</Button>
                   </TableCell>
                 </TableRow>
               )}
             </TableBody>
-
           </Table>
           <Box sx={{ display: "flex", justifyContent: "flex-end", p: 2 }}>
-            <Button
-              variant="outlined"
-              color="success"
-              onClick={() => setShowNewRow(true)}
-            >
+            <Button variant="contained" color="success" onClick={() => setShowNewRow(true)}>
               + Ajouter un Plan
             </Button>
           </Box>
         </TableContainer>
       )}
+
+      <Dialog open={vulnDialogOpen} onClose={() => setVulnDialogOpen(false)} maxWidth="md" fullWidth>
+        <DialogTitle>Vulnérabilités du plan</DialogTitle>
+        <DialogContent>
+          {selectedVulns.length === 0 ? (
+            <Typography>Aucune vulnérabilité enregistrée.</Typography>
+          ) : (
+            <Table>
+              <TableHead>
+                <TableRow>
+                  <TableCell>Titre</TableCell>
+                  <TableCell>Criticité</TableCell>
+                  <TableCell>Remédiation %</TableCell>
+                  <TableCell>Statut</TableCell>
+                  <TableCell>Actions</TableCell>
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                {selectedVulns.map((vuln, index) => (
+                  <TableRow key={index}>
+                    <TableCell>{vuln.titre}</TableCell>
+                    <TableCell>{vuln.criticite}</TableCell>
+                    <TableCell>{vuln.pourcentage_remediation}</TableCell>
+                    <TableCell>{vuln.statut_remediation}</TableCell>
+                    <TableCell>{vuln.actions}</TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setVulnDialogOpen(false)}>Fermer</Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 };

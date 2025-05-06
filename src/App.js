@@ -13,11 +13,6 @@ import AffectList from './services/Affectation/AffectList';
 import AuditeurPage from './services/Affectation/AuditeurPage';
 import IPList from './services/Affectation/IPList';
 
-import Plan from './services/Plan/Plan';
-import PlanServiceV1 from './services/Plan/PlanServiceV1';
-import PlanServiceV2 from './services/Plan/PlanServiceV2';
-import PlanServiceV3 from './services/Plan/PlanServiceV3';
-import PlanServiceV4 from './services/Plan/PlanServiceV4';
 import PlanService from './services/Plan/PlanService';
 
 import ListesAudit from './services/Audit/ListesAudit';
@@ -27,6 +22,7 @@ import Dashboard from './services/Dashboard/Dashboard';
 import Landing from './layout/components/Landing';
 import Footer from './layout/components/Footer';
 import AuditList from './services/Audit/AuditList';
+import PlanManager from './services/Plan/PlanManager';
 
 const theme = createTheme({
   palette: {
@@ -63,12 +59,8 @@ function App() {
               <Route path="/auditeurs-list" element={<AuditeurPage />} />
               <Route path="/ip-list" element={<IPList />} />  
 
-              <Route path="/upload" element={<Plan />} />
-              <Route path='/plan1' element={<PlanServiceV1 />} />
-              <Route path='/plan2' element={<PlanServiceV2 />} />
-              <Route path='/plan3' element={<PlanServiceV3 />} />
-              <Route path='/plan4' element={<PlanServiceV4 />} />
               <Route path='/plan' element={<PlanService />} />
+              <Route path='/plan1' element={<PlanManager />} />
 
               <Route path='/list' element={<ListesAudit />} />
               <Route path='/list1' element={<AuditList />} />
