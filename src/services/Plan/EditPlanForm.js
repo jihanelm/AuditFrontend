@@ -6,12 +6,18 @@ import {
   DialogActions,
   TextField,
   Button,
-  Grid,
-  Box,
   Typography,
   Divider,
   Paper,
+  Grid,
+  Box,
 } from "@mui/material";
+import { RichTextEditor } from "@mantine/tiptap";
+import { useEditor } from "@tiptap/react";
+import StarterKit from "@tiptap/starter-kit";
+import AddIcon from "@mui/icons-material/Add";
+import SaveIcon from "@mui/icons-material/Save";
+import CancelIcon from "@mui/icons-material/Cancel";
 import api from "../../api";
 
 const EditPlanForm = ({ plan, open, onClose, fetchPlans }) => {
@@ -39,6 +45,26 @@ const EditPlanForm = ({ plan, open, onClose, fetchPlans }) => {
       });
     }
   }, [plan]);
+
+  const editorDCSG = useEditor({
+    extensions: [StarterKit],
+    content: plan?.commentaire_dcsg || "",
+    onUpdate: ({ editor }) =>
+      setFormData((prev) => ({
+        ...prev,
+        commentaire_dcsg: editor.getHTML(),
+      })),
+  });
+
+  const editorCP = useEditor({
+    extensions: [StarterKit],
+    content: plan?.commentaire_cp || "",
+    onUpdate: ({ editor }) =>
+      setFormData((prev) => ({
+        ...prev,
+        commentaire_cp: editor.getHTML(),
+      })),
+  });
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -81,14 +107,15 @@ const EditPlanForm = ({ plan, open, onClose, fetchPlans }) => {
   return (
     <Dialog open={open} onClose={onClose} fullWidth maxWidth="md">
       <DialogTitle>Modifier le Plan</DialogTitle>
-      <DialogContent>
-        <Box sx={{ my: 2 }}>
-          <Typography variant="h6">Informations Générales</Typography>
+      <DialogContent dividers>
+        <Paper elevation={3} sx={{ p: 3, mb: 3, borderRadius: 2 }}>
+          <Typography variant="h6" gutterBottom>Informations Générales</Typography>
           <Divider sx={{ mb: 2 }} />
           <Grid container spacing={2}>
             {[
               { label: "Référence", name: "ref" },
               { label: "Application", name: "application" },
+              { label: "Type Application", name: "type_application" },
               { label: "Type Audit", name: "type_audit" },
               { label: "Date Réalisation", name: "date_realisation", type: "date" },
               { label: "Date Clôture", name: "date_cloture", type: "date" },
@@ -96,12 +123,12 @@ const EditPlanForm = ({ plan, open, onClose, fetchPlans }) => {
               { label: "Niveau Sécurité", name: "niveau_securite" },
               { label: "Nombre de Vulnérabilités", name: "nb_vulnerabilites" },
               { label: "Taux de Remédiation", name: "taux_remediation" },
-              { label: "Commentaires DCSG", name: "commentaire_dcsg" },
-              { label: "Commentaires CP", name: "commentaire_cp" },
             ].map((field, index) => (
               <Grid item xs={12} sm={6} key={index}>
                 <TextField
                   fullWidth
+                  variant="outlined"
+                  margin="dense"
                   label={field.label}
                   name={field.name}
                   type={field.type || "text"}
@@ -112,29 +139,119 @@ const EditPlanForm = ({ plan, open, onClose, fetchPlans }) => {
               </Grid>
             ))}
           </Grid>
-        </Box>
+        </Paper>
 
-        <Box sx={{ mt: 4 }}>
-          <Typography variant="h6">Vulnérabilités</Typography>
+        <Paper elevation={3} sx={{ p: 3, mb: 3, borderRadius: 2 }}>
+          <Typography variant="h6" gutterBottom>Commentaires</Typography>
+          <Divider sx={{ mb: 2 }} />
+          <Box sx={{ mb: 3 }}>
+            <Typography variant="subtitle1">Commentaire DCSG</Typography>
+            {editorDCSG && (
+              <RichTextEditor editor={editorDCSG}>
+                <RichTextEditor.Toolbar sticky stickyOffset={60}>
+                  <RichTextEditor.ControlsGroup>
+                    <RichTextEditor.Bold />
+                    <RichTextEditor.Italic />
+                    <RichTextEditor.Underline />
+                    <RichTextEditor.Strikethrough />
+                  </RichTextEditor.ControlsGroup>
+                  <RichTextEditor.ControlsGroup>
+                    <RichTextEditor.H1 />
+                    <RichTextEditor.H2 />
+                    <RichTextEditor.H3 />
+                  </RichTextEditor.ControlsGroup>
+                  <RichTextEditor.ControlsGroup>
+                    <RichTextEditor.BulletList />
+                    <RichTextEditor.OrderedList />
+                  </RichTextEditor.ControlsGroup>
+                  <RichTextEditor.ControlsGroup>
+                    <RichTextEditor.Blockquote />
+                    <RichTextEditor.CodeBlock />
+                  </RichTextEditor.ControlsGroup>
+                  <RichTextEditor.ControlsGroup>
+                    <RichTextEditor.Undo />
+                    <RichTextEditor.Redo />
+                  </RichTextEditor.ControlsGroup>
+                </RichTextEditor.Toolbar>
+                <RichTextEditor.Content />
+              </RichTextEditor>
+            )}
+          </Box>
+
+          <Box>
+            <Typography variant="subtitle1">Commentaire CP</Typography>
+            {editorCP && (
+              <RichTextEditor editor={editorCP}>
+                <RichTextEditor.Toolbar sticky stickyOffset={60}>
+                  <RichTextEditor.ControlsGroup>
+                    <RichTextEditor.Bold />
+                    <RichTextEditor.Italic />
+                    <RichTextEditor.Underline />
+                    <RichTextEditor.Strikethrough />
+                  </RichTextEditor.ControlsGroup>
+                  <RichTextEditor.ControlsGroup>
+                    <RichTextEditor.H1 />
+                    <RichTextEditor.H2 />
+                    <RichTextEditor.H3 />
+                  </RichTextEditor.ControlsGroup>
+                  <RichTextEditor.ControlsGroup>
+                    <RichTextEditor.BulletList />
+                    <RichTextEditor.OrderedList />
+                  </RichTextEditor.ControlsGroup>
+                  <RichTextEditor.ControlsGroup>
+                    <RichTextEditor.Blockquote />
+                    <RichTextEditor.CodeBlock />
+                  </RichTextEditor.ControlsGroup>
+                  <RichTextEditor.ControlsGroup>
+                    <RichTextEditor.Undo />
+                    <RichTextEditor.Redo />
+                  </RichTextEditor.ControlsGroup>
+                </RichTextEditor.Toolbar>
+                <RichTextEditor.Content />
+              </RichTextEditor>
+            )}
+          </Box>
+        </Paper>
+
+        <Paper elevation={3} sx={{ p: 3, mb: 3, borderRadius: 2 }}>
+          <Typography variant="h6" gutterBottom>Vulnérabilités</Typography>
           <Divider sx={{ mb: 2 }} />
           {formData.vulnerabilites.map((vuln, index) => (
-            <Paper key={index} sx={{ p: 2, mb: 2, borderLeft: '4px solid #1976d2' }}>
-              <Typography variant="subtitle1">Vulnérabilité #{index + 1}</Typography>
-              <Grid container spacing={2} sx={{ mt: 1 }}>
+            <Paper
+              key={`${vuln.titre}-${index}`}
+              sx={{
+                p: 2,
+                mb: 3,
+                backgroundColor: "#f9f9f9",
+                borderRadius: 2,
+                boxShadow: 1,
+                borderLeft: "4px solid #1976d2",
+              }}
+            >
+              <Typography variant="subtitle1" gutterBottom>
+                Vulnérabilité #{index + 1}
+              </Typography>
+              <Grid container spacing={2}>
                 <Grid item xs={12} sm={6}>
                   <TextField
                     label="Titre"
                     fullWidth
+                    margin="dense"
                     value={vuln.titre}
-                    onChange={(e) => handleVulnChange(index, "titre", e.target.value)}
+                    onChange={(e) =>
+                      handleVulnChange(index, "titre", e.target.value)
+                    }
                   />
                 </Grid>
                 <Grid item xs={12} sm={6}>
                   <TextField
                     label="Criticité"
                     fullWidth
+                    margin="dense"
                     value={vuln.criticite}
-                    onChange={(e) => handleVulnChange(index, "criticite", e.target.value)}
+                    onChange={(e) =>
+                      handleVulnChange(index, "criticite", e.target.value)
+                    }
                   />
                 </Grid>
                 <Grid item xs={12} sm={6}>
@@ -142,9 +259,14 @@ const EditPlanForm = ({ plan, open, onClose, fetchPlans }) => {
                     label="% Remédiation"
                     type="number"
                     fullWidth
+                    margin="dense"
                     value={vuln.pourcentage_remediation}
                     onChange={(e) =>
-                      handleVulnChange(index, "pourcentage_remediation", parseFloat(e.target.value))
+                      handleVulnChange(
+                        index,
+                        "pourcentage_remediation",
+                        e.target.value ? parseFloat(e.target.value) : 0
+                      )
                     }
                   />
                 </Grid>
@@ -152,29 +274,59 @@ const EditPlanForm = ({ plan, open, onClose, fetchPlans }) => {
                   <TextField
                     label="Statut Remédiation"
                     fullWidth
+                    margin="dense"
                     value={vuln.statut_remediation}
-                    onChange={(e) => handleVulnChange(index, "statut_remediation", e.target.value)}
+                    onChange={(e) =>
+                      handleVulnChange(index, "statut_remediation", e.target.value)
+                    }
                   />
                 </Grid>
                 <Grid item xs={12}>
                   <TextField
                     label="Actions"
                     fullWidth
+                    margin="dense"
                     value={vuln.actions}
-                    onChange={(e) => handleVulnChange(index, "actions", e.target.value)}
+                    onChange={(e) =>
+                      handleVulnChange(index, "actions", e.target.value)
+                    }
                   />
                 </Grid>
               </Grid>
+              <Grid>
+                <Button
+                  color="error"
+                  onClick={() => {
+                    const newVulns = [...formData.vulnerabilites];
+                    newVulns.splice(index, 1);
+                    setFormData({ ...formData, vulnerabilites: newVulns });
+                  }}
+                >
+                  Supprimer
+                </Button>
+              </Grid>
+              
             </Paper>
           ))}
-          <Button variant="outlined" onClick={addVulnField}>
+          <Button
+            variant="outlined"
+            startIcon={<AddIcon />}
+            onClick={addVulnField}
+          >
             Ajouter une vulnérabilité
           </Button>
-        </Box>
+        </Paper>
       </DialogContent>
       <DialogActions>
-        <Button onClick={onClose}>Annuler</Button>
-        <Button onClick={handleSubmit} variant="contained" color="primary">
+        <Button onClick={onClose} startIcon={<CancelIcon />}>
+          Annuler
+        </Button>
+        <Button
+          onClick={handleSubmit}
+          variant="contained"
+          color="primary"
+          startIcon={<SaveIcon />}
+        >
           Enregistrer
         </Button>
       </DialogActions>

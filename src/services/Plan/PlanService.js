@@ -24,6 +24,7 @@ import {
 } from "@mui/material";
 import api from "../../api";
 import EditPlanForm from "./EditPlanForm";
+import parse from 'html-react-parser';
 
 const PlanService = () => {
   const [file, setFile] = useState(null);
@@ -241,8 +242,13 @@ const PlanService = () => {
               {plans.map((plan) => (
                 <TableRow key={plan.id}>
                   {columns.map((col) => (
-                    <TableCell key={col}>{plan[col]}</TableCell>
+                    <TableCell key={col}>
+                      {col === "commentaire_dcsg" || col === "commentaire_cp"
+                        ? parse(plan[col] || "")
+                        : plan[col]}
+                    </TableCell>
                   ))}
+
                   <TableCell>
                     <Button variant="outlined" size="small" onClick={() => handleShowVulns(plan.vulnerabilites)}>
                       Voir
