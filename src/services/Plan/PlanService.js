@@ -30,13 +30,14 @@ const PlanService = () => {
   const [file, setFile] = useState(null);
   const [plans, setPlans] = useState([]);
   const [filters, setFilters] = useState({
-    month: "",
-    year: "",
-    date_realisation: "",
-    date_cloture: "",
-    date_rapport: "",
+    realisation_year: "",
+    realisation_month: "",
+    cloture_year: "",
+    cloture_month: "",
+    rapport_year: "",
+    rapport_month: "",
     type_audit: "",
-  });
+  });  
 
   const [columns, setColumns] = useState([]);
   const [selectedPlan, setSelectedPlan] = useState(null);
@@ -80,8 +81,7 @@ const PlanService = () => {
           "ref", "application", "type_audit", "date_realisation", "date_cloture", "date_rapport",
           "niveau_securite", "nb_vulnerabilites", "taux_remediation", "commentaire_dcsg", "commentaire_cp"
         ];
-        const extraKeys = Object.keys(response.data[0].extra_data || {});
-        setColumns([...baseKeys, ...extraKeys]);
+        setColumns([...baseKeys]);
       }
     } catch (error) {
       console.error("Erreur lors du chargement des plans :", error);
@@ -141,24 +141,69 @@ const PlanService = () => {
       const filteredParams = Object.fromEntries(
         Object.entries(filters).filter(([_, v]) => v !== "")
       );
+  
       const response = await api.get(`/plan/plans/download/`, {
         params: filteredParams,
         responseType: "blob",
       });
-      const url = window.URL.createObjectURL(new Blob([response.data]));
+  
+      const blob = new Blob([response.data], {
+        type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+      });
+  
+      const url = window.URL.createObjectURL(blob);
       const link = document.createElement("a");
+  
+      const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
       link.href = url;
-      link.setAttribute("download", "plans.xlsx");
+      link.setAttribute("download", `plans_export_${timestamp}.xlsx`);
+  
       document.body.appendChild(link);
       link.click();
+  
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
     } catch (error) {
       console.error("Erreur lors du téléchargement :", error);
     }
   };
+  
 
   const handleAddPlan = async () => {
     try {
-      await api.post(`/plan/plan/`, newPlan);
+      const selectedAudit = audits.find(a => a.id === parseInt(selectedAuditId));
+      let nb_vuln_summary = null;
+        if (selectedAudit && selectedAudit.vulnerabilites) {
+          const countByCriticity = {
+            critique: 0,
+            majeure: 0,
+            moderee: 0,
+            mineure: 0,
+          };
+
+          selectedAudit.vulnerabilites.forEach((v) => {
+            const c = v.criticite?.toLowerCase();
+            if (countByCriticity.hasOwnProperty(c)) {
+              countByCriticity[c]++;
+            }
+          });
+
+          const total = Object.values(countByCriticity).reduce((sum, val) => sum + val, 0);
+          nb_vuln_summary = {
+            total,
+            ...countByCriticity,
+          };
+        }
+
+        
+      const payload = {
+        ...newPlan,
+        nb_vulnerabilites: nb_vuln_summary,
+        vulnerabilites: selectedAudit?.vulnerabilites || []
+      };
+      
+  
+      await api.post(`/plan/plan/`, payload);
       fetchPlans();
       setNewPlan({});
       setShowNewRow(false);
@@ -167,6 +212,7 @@ const PlanService = () => {
       alert("Erreur lors de l'ajout !");
     }
   };
+  
 
   const handleEditClick = (plan) => setSelectedPlan(plan);
 
@@ -175,6 +221,13 @@ const PlanService = () => {
   const handleShowVulns = (vulns) => {
     setSelectedVulns(vulns || []);
     setVulnDialogOpen(true);
+  };
+
+  const severityColors = {
+    mineure: "#A9D08E",
+    moderee: "#FFFF00",
+    majeure: "#FFC000",
+    critique: "#c00000",
   };
 
   return (
@@ -192,13 +245,24 @@ const PlanService = () => {
       <Paper sx={{ p: 2, mb: 2 }}>
         <Typography variant="h6">Filtres</Typography>
         <Grid container spacing={2}>
-          {Object.keys(filters).map((key) => (
+          {[
+            { label: "Année Réalisation", key: "realisation_year" },
+            { label: "Mois Réalisation", key: "realisation_month" },
+            { label: "Année Clôture", key: "cloture_year" },
+            { label: "Mois Clôture", key: "cloture_month" },
+            { label: "Année Rapport", key: "rapport_year" },
+            { label: "Mois Rapport", key: "rapport_month" },
+            { label: "Type d'audit", key: "type_audit" },
+          ].map(({ label, key }) => (
             <Grid item xs={12} sm={6} md={3} key={key}>
               <TextField
-                label={key.replace(/_/g, ' ')}
+                label={label}
                 fullWidth
+                type={key.includes("month") || key.includes("year") ? "number" : "text"}
                 value={filters[key]}
-                onChange={(e) => setFilters({ ...filters, [key]: e.target.value })}
+                onChange={(e) =>
+                  setFilters({ ...filters, [key]: e.target.value })
+                }
               />
             </Grid>
           ))}
@@ -217,7 +281,7 @@ const PlanService = () => {
             <MenuItem value=""><em>None</em></MenuItem>
             {audits.map((audit) => (
               <MenuItem key={audit.id} value={audit.id}>
-                [{audit.id}] {audit.type_audit}
+                [{audit.id}] {audit.nom_app}
               </MenuItem>
             ))}
           </Select>
@@ -243,11 +307,42 @@ const PlanService = () => {
                 <TableRow key={plan.id}>
                   {columns.map((col) => (
                     <TableCell key={col}>
-                      {col === "commentaire_dcsg" || col === "commentaire_cp"
-                        ? parse(plan[col] || "")
-                        : plan[col]}
+                      {col === "nb_vulnerabilites"
+                        ? (() => {
+                            const summary = plan.nb_vulnerabilites;
+                            return summary && typeof summary === 'object' ? (
+                              <Box>
+                                <Typography sx={{ fontWeight: "bold" }}>
+                                  {summary.total} Vulnérabilités{summary.total > 1 ? "s" : ""}
+                                </Typography>
+                                {["mineure", "moderee", "majeure", "critique"].map((level) =>
+                                  summary[level] > 0 ? (
+                                    <Box
+                                      key={level}
+                                      sx={{
+                                        backgroundColor: severityColors[level],
+                                        borderRadius: 1,
+                                        p: 0.5,
+                                        mb: 0.5,
+                                      }}
+                                    >
+                                      {level.charAt(0).toUpperCase() + level.slice(1)}: {summary[level]}
+                                    </Box>
+                                  ) : null
+                                )}
+                              </Box>
+                            ) : (
+                              <Typography sx={{ fontStyle: "italic", color: "gray" }}>Aucune donnée</Typography>
+                            );
+                          })()
+                        : col === "commentaire_dcsg" || col === "commentaire_cp"
+                          ? parse(plan[col] || "")
+                          : plan[col]
+                      }
+
                     </TableCell>
                   ))}
+
 
                   <TableCell>
                     <Button variant="outlined" size="small" onClick={() => handleShowVulns(plan.vulnerabilites)}>
@@ -319,7 +414,14 @@ const PlanService = () => {
                 {selectedVulns.map((vuln, index) => (
                   <TableRow key={index}>
                     <TableCell>{vuln.titre}</TableCell>
-                    <TableCell>{vuln.criticite}</TableCell>
+                    <TableCell
+                      sx={{
+                        backgroundColor: severityColors[vuln.criticite] || "inherit",
+                        fontWeight: "bold",
+                      }}
+                    >
+                      {vuln.criticite}
+                    </TableCell>
                     <TableCell>{vuln.pourcentage_remediation}</TableCell>
                     <TableCell>{vuln.statut_remediation}</TableCell>
                     <TableCell>{vuln.actions}</TableCell>

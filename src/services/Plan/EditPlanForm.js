@@ -11,6 +11,7 @@ import {
   Paper,
   Grid,
   Box,
+  MenuItem,
 } from "@mui/material";
 import { RichTextEditor } from "@mantine/tiptap";
 import { useEditor } from "@tiptap/react";
@@ -18,6 +19,7 @@ import StarterKit from "@tiptap/starter-kit";
 import AddIcon from "@mui/icons-material/Add";
 import SaveIcon from "@mui/icons-material/Save";
 import CancelIcon from "@mui/icons-material/Cancel";
+import { v4 as uuidv4 } from 'uuid';
 import api from "../../api";
 
 const EditPlanForm = ({ plan, open, onClose, fetchPlans }) => {
@@ -70,9 +72,22 @@ const EditPlanForm = ({ plan, open, onClose, fetchPlans }) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
+  const vulnStats = {
+    total: formData.vulnerabilites.length,
+    critique: formData.vulnerabilites.filter(v => v.criticite === "critique").length,
+    majeure: formData.vulnerabilites.filter(v => v.criticite === "majeure").length,
+    moderee: formData.vulnerabilites.filter(v => v.criticite === "moderee").length,
+    mineure: formData.vulnerabilites.filter(v => v.criticite === "mineure").length,
+  };  
+
   const handleSubmit = async () => {
     try {
-      await api.put(`/plan/plans/${plan.id}`, formData);
+      const dataToSend = {
+        ...formData,
+        nb_vulnerabilites: vulnStats,
+      };
+  
+      await api.put(`/plan/plans/${plan.id}`, dataToSend);
       alert("Plan modifié avec succès !");
       fetchPlans();
       onClose();
@@ -80,11 +95,12 @@ const EditPlanForm = ({ plan, open, onClose, fetchPlans }) => {
       console.error("Erreur lors de la modification :", error);
       alert("Erreur lors de la modification !");
     }
-  };
+  };  
 
   const handleVulnChange = (index, field, value) => {
-    const newVulns = [...formData.vulnerabilites];
-    newVulns[index][field] = value;
+    const newVulns = formData.vulnerabilites.map((vuln, i) =>
+      i === index ? { ...vuln, [field]: value } : vuln
+    );    
     setFormData({ ...formData, vulnerabilites: newVulns });
   };
 
@@ -94,6 +110,7 @@ const EditPlanForm = ({ plan, open, onClose, fetchPlans }) => {
       vulnerabilites: [
         ...formData.vulnerabilites,
         {
+          id: uuidv4(), // id stable
           titre: "",
           criticite: "",
           pourcentage_remediation: 0,
@@ -113,16 +130,11 @@ const EditPlanForm = ({ plan, open, onClose, fetchPlans }) => {
           <Divider sx={{ mb: 2 }} />
           <Grid container spacing={2}>
             {[
-              { label: "Référence", name: "ref" },
               { label: "Application", name: "application" },
               { label: "Type Application", name: "type_application" },
-              { label: "Type Audit", name: "type_audit" },
               { label: "Date Réalisation", name: "date_realisation", type: "date" },
               { label: "Date Clôture", name: "date_cloture", type: "date" },
               { label: "Date Rapport", name: "date_rapport", type: "date" },
-              { label: "Niveau Sécurité", name: "niveau_securite" },
-              { label: "Nombre de Vulnérabilités", name: "nb_vulnerabilites" },
-              { label: "Taux de Remédiation", name: "taux_remediation" },
             ].map((field, index) => (
               <Grid item xs={12} sm={6} key={index}>
                 <TextField
@@ -138,6 +150,39 @@ const EditPlanForm = ({ plan, open, onClose, fetchPlans }) => {
                 />
               </Grid>
             ))}
+            <Grid item xs={12} sm={6}>
+              <TextField
+                select
+                fullWidth
+                label="Type Audit"
+                name="type_audit"
+                margin="dense"
+                value={formData.type_audit}
+                onChange={handleChange}
+              >
+                <MenuItem value="Pentest">Pentest</MenuItem>
+                <MenuItem value="Architecture">Architecture</MenuItem>
+                <MenuItem value="Configuration">Configuration</MenuItem>
+                <MenuItem value="Reseau">Reseau</MenuItem>
+                <MenuItem value="Code Source">Code Source</MenuItem>
+              </TextField>
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <TextField
+                select
+                fullWidth
+                label="Niveau Sécurité"
+                name="niveau_securite"
+                margin="dense"
+                value={formData.niveau_securite}
+                onChange={handleChange}
+              >
+                <MenuItem value="mineure">Mineure</MenuItem>
+                <MenuItem value="moderee">Modérée</MenuItem>
+                <MenuItem value="majeure">Majeure</MenuItem>
+                <MenuItem value="critique">Critique</MenuItem>
+              </TextField>
+            </Grid>
           </Grid>
         </Paper>
 
@@ -218,7 +263,7 @@ const EditPlanForm = ({ plan, open, onClose, fetchPlans }) => {
           <Divider sx={{ mb: 2 }} />
           {formData.vulnerabilites.map((vuln, index) => (
             <Paper
-              key={`${vuln.titre}-${index}`}
+              key={vuln.id}
               sx={{
                 p: 2,
                 mb: 3,
@@ -231,8 +276,8 @@ const EditPlanForm = ({ plan, open, onClose, fetchPlans }) => {
               <Typography variant="subtitle1" gutterBottom>
                 Vulnérabilité #{index + 1}
               </Typography>
-              <Grid container spacing={2}>
-                <Grid item xs={12} sm={6}>
+            <Grid container spacing={2}>
+              <Grid item xs={12} sm={6}>
                   <TextField
                     label="Titre"
                     fullWidth
@@ -248,11 +293,17 @@ const EditPlanForm = ({ plan, open, onClose, fetchPlans }) => {
                     label="Criticité"
                     fullWidth
                     margin="dense"
+                    select
                     value={vuln.criticite}
                     onChange={(e) =>
                       handleVulnChange(index, "criticite", e.target.value)
                     }
-                  />
+                  >
+                    <MenuItem value="mineure">Mineure</MenuItem>
+                    <MenuItem value="moderee">Modérée</MenuItem>
+                    <MenuItem value="majeure">Majeure</MenuItem>
+                    <MenuItem value="critique">Critique</MenuItem>
+                  </TextField>
                 </Grid>
                 <Grid item xs={12} sm={6}>
                   <TextField
