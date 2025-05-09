@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   Box,
   Typography,
@@ -9,14 +10,55 @@ import {
   TableContainer,
   TableHead,
   TableRow,
+  TableSortLabel,
   Button,
   Chip,
+  TextField,
+  IconButton,
+  Tooltip,
+  TablePagination,
 } from "@mui/material";
 import OpenInNewIcon from "@mui/icons-material/OpenInNew";
+import RefreshIcon from "@mui/icons-material/Refresh";
 import api from "../../api";
 
 export default function ListesAudit() {
   const [audits, setAudits] = useState([]);
+  const [search, setSearch] = useState("");
+  const [order, setOrder] = useState("asc");
+  const [orderBy, setOrderBy] = useState("nom_app");
+  const [page, setPage] = useState(0);
+  const [rowsPerPage, setRowsPerPage] = useState(5);
+
+  const navigate = useNavigate();
+
+  const handleChangeEtat = async (id, newEtat) => {
+    try {
+      await api.patch(`/audit/audits/${id}/etat`, { new_etat: newEtat });
+      fetchAuditDetails();
+    } catch (error) {
+      console.error(`Erreur lors du changement d'état (${newEtat}) :`, error);
+      alert(`Échec du changement d'état vers "${newEtat}"`);
+    }
+  };
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      audits.forEach((audit) => {
+        if (audit.etat === "En cours") {
+          api.get(`/audit/audits/${audit.id}/duration`).then((res) => {
+            setAudits((prev) =>
+              prev.map((a) =>
+                a.id === audit.id ? { ...a, duration: `${res.data.duration} jour(s)` } : a
+              )
+            );
+          });
+        }
+      });
+    }, 60000); // 60s
+  
+    return () => clearInterval(interval);
+  }, [audits]);  
 
   useEffect(() => {
     fetchAuditDetails();
@@ -36,6 +78,7 @@ export default function ListesAudit() {
           demandeur_email_1: audit.demande_audit?.demandeur_email_1 || "",
           demandeur_phone_1: audit.demande_audit?.demandeur_phone_1 || "",
           fichiers_attaches: audit.demande_audit?.fichiers_attaches || [],
+          fiche_demande_path: audit.demande_audit?.fiche_demande_path || "",
         },
         prestataire: {
           nom: audit.prestataire?.nom || "",
@@ -63,12 +106,12 @@ export default function ListesAudit() {
   };
 
   const handleOpenPDF = (row) => {
-    const fichiers = row.demande_audit?.fichiers_attaches || [];
+    const fichiers = row.demande_audit?.fiche_demande_path || [];
     const pdfFiles = fichiers.filter((file) => file.toLowerCase().endsWith(".pdf"));
 
-    if (pdfFiles.length === 0) return alert("Aucun PDF disponible.");
+    if (pdfFiles.length === 0) return alert("Aucune Fiche disponible.");
     if (pdfFiles.length === 1) {
-      const url = `http://localhost:8000/${pdfFiles[0].replace(/\\/g, "/")}`;
+      const url = `http://localhost:8000/${pdfFiles.replace(/\\/g, "/")}`;
       window.open(url, "_blank");
       return;
     }
@@ -87,42 +130,93 @@ export default function ListesAudit() {
     }
   };
 
+  const handleRequestSort = (property) => {
+    const isAsc = orderBy === property && order === "asc";
+    setOrder(isAsc ? "desc" : "asc");
+    setOrderBy(property);
+  };
+
+  const handleChangePage = (event, newPage) => setPage(newPage);
+  const handleChangeRowsPerPage = (event) => {
+    setRowsPerPage(parseInt(event.target.value, 10));
+    setPage(0);
+  };
+
+  const sortComparator = (a, b, orderBy) => {
+    const valA = a.demande_audit[orderBy]?.toLowerCase?.() || "";
+    const valB = b.demande_audit[orderBy]?.toLowerCase?.() || "";
+    return valA.localeCompare(valB);
+  };
+
+  const sortedAudits = [...audits]
+    .filter((audit) =>
+      audit.demande_audit.nom_app.toLowerCase().includes(search.toLowerCase())
+    )
+    .sort((a, b) =>
+      order === "asc"
+        ? sortComparator(a, b, orderBy)
+        : sortComparator(b, a, orderBy)
+    );
+
+  const paginatedAudits = sortedAudits.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage);
+
   return (
-    <Box
-      sx={{
-        height: "100%", // Adjust depending on your navbar/footer
-        width: "100%",
-        boxSizing: "border-box",
-      }}
-    >
-      <Typography variant="h4" gutterBottom>
-        Liste des Audits
-      </Typography>
+    <Box sx={{ width: "100%", p: 2 }}>
+      <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 2 }}>
+        <Typography variant="h4">Liste des Audits</Typography>
+        <Box display="flex" alignItems="center" gap={2}>
+          <TextField
+            label="Rechercher une application"
+            variant="outlined"
+            size="small"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+          />
+          <Tooltip title="Rafraîchir">
+            <IconButton onClick={fetchAuditDetails} color="primary">
+              <RefreshIcon />
+            </IconButton>
+          </Tooltip>
+        </Box>
+      </Box>
+
       <TableContainer component={Paper}>
-        <Table padding="normal">
+        <Table>
           <TableHead>
             <TableRow>
-              <TableCell rowSpan={2} sx={{ px: 3, py: 2 }}>Application</TableCell>
-              <TableCell colSpan={3} align="center" sx={{ px: 3, py: 2 }}>Demandeur</TableCell>
-              <TableCell rowSpan={2} sx={{ px: 3, py: 2 }}>Prestataire</TableCell>
-              <TableCell rowSpan={2} sx={{ px: 3, py: 2 }}>Auditeur Externe</TableCell>
-              <TableCell rowSpan={2} sx={{ px: 3, py: 2 }}>Durée</TableCell>
-              <TableCell rowSpan={2} sx={{ px: 3, py: 2 }}>État</TableCell>
-              <TableCell rowSpan={2} sx={{ px: 3, py: 2 }}>Actions</TableCell>
+              <TableCell sortDirection={orderBy === "nom_app" ? order : false}>
+                <TableSortLabel
+                  active={orderBy === "nom_app"}
+                  direction={orderBy === "nom_app" ? order : "asc"}
+                  onClick={() => handleRequestSort("nom_app")}
+                >
+                  Application
+                </TableSortLabel>
+              </TableCell>
+              <TableCell colSpan={3} align="center">Demandeur</TableCell>
+              <TableCell>Prestataire</TableCell>
+              <TableCell>Auditeur Externe</TableCell>
+              <TableCell>Durée</TableCell>
+              <TableCell>État</TableCell>
+              <TableCell>Actions</TableCell>
             </TableRow>
             <TableRow>
-              <TableCell sx={{ px: 3, py: 2 }}>Nom et Prénom</TableCell>
-              <TableCell sx={{ px: 3, py: 2 }}>Email</TableCell>
-              <TableCell sx={{ px: 3, py: 2 }}>Téléphone</TableCell>
+              <TableCell />
+              <TableCell>Nom et Prénom</TableCell>
+              <TableCell>Email</TableCell>
+              <TableCell>Téléphone</TableCell>
+              <TableCell />
+              <TableCell />
+              <TableCell />
+              <TableCell />
+              <TableCell />
             </TableRow>
           </TableHead>
           <TableBody>
-            {audits.map((row) => (
-              <TableRow key={row.id}>
+            {paginatedAudits.map((row) => (
+              <TableRow key={row.id} hover>
                 <TableCell>{row.demande_audit.nom_app}</TableCell>
-                <TableCell>
-                  {row.demande_audit.demandeur_nom_1} {row.demande_audit.demandeur_prenom_1}
-                </TableCell>
+                <TableCell>{`${row.demande_audit.demandeur_nom_1} ${row.demande_audit.demandeur_prenom_1}`}</TableCell>
                 <TableCell>{row.demande_audit.demandeur_email_1}</TableCell>
                 <TableCell>{row.demande_audit.demandeur_phone_1}</TableCell>
                 <TableCell>{row.prestataire.nom || "N/A"}</TableCell>
@@ -139,7 +233,7 @@ export default function ListesAudit() {
                       row.etat?.toLowerCase() === "suspendu"
                         ? "warning"
                         : row.etat?.toLowerCase() === "terminé"
-                        ? "default"
+                        ? "error"
                         : "success"
                     }
                     variant="outlined"
@@ -149,20 +243,29 @@ export default function ListesAudit() {
                   <Button
                     size="small"
                     variant="contained"
-                    color="primary"
+                    color="warning"
                     sx={{ mr: 1 }}
-                    onClick={() => console.log("Modifier", row.id)}
+                    onClick={() => handleChangeEtat(row.id, "Suspendu")}
                   >
-                    Modifier
+                    Suspendre
+                  </Button>
+                  <Button
+                    size="small"
+                    variant="contained"
+                    color="success"
+                    sx={{ mr: 1 }}
+                    onClick={() => handleChangeEtat(row.id, "En Cours")}
+                  >
+                    Continuer
                   </Button>
                   <Button
                     size="small"
                     variant="contained"
                     color="error"
                     sx={{ mr: 1 }}
-                    onClick={() => console.log("Arrêter", row.id)}
+                    onClick={() => handleChangeEtat(row.id, "Terminé")}
                   >
-                    Arrêter
+                    Terminer
                   </Button>
                   <Button
                     size="small"
@@ -178,6 +281,15 @@ export default function ListesAudit() {
             ))}
           </TableBody>
         </Table>
+        <TablePagination
+          rowsPerPageOptions={[5, 10, 20]}
+          component="div"
+          count={sortedAudits.length}
+          rowsPerPage={rowsPerPage}
+          page={page}
+          onPageChange={handleChangePage}
+          onRowsPerPageChange={handleChangeRowsPerPage}
+        />
       </TableContainer>
     </Box>
   );

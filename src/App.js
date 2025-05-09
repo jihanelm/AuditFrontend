@@ -23,7 +23,6 @@ import Dashboard from './services/Dashboard/Dashboard';
 
 import Landing from './layout/components/Landing';
 import Footer from './layout/components/Footer';
-import AuditList from './services/Audit/AuditList';
 import PlanManager from './services/Plan/PlanManager';
 
 const theme = createTheme({
@@ -65,7 +64,6 @@ function App() {
                 <Route path="/plan1" element={<PlanManager />} />
 
                 <Route path="/list" element={<ListesAudit />} />
-                <Route path="/list1" element={<AuditList />} />
 
                 <Route path="/dash" element={<Dashboard />} />
 

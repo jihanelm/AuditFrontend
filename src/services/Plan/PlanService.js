@@ -246,20 +246,27 @@ const PlanService = () => {
         <Typography variant="h6">Filtres</Typography>
         <Grid container spacing={2}>
           {[
-            { label: "Année Réalisation", key: "realisation_year" },
-            { label: "Mois Réalisation", key: "realisation_month" },
-            { label: "Année Clôture", key: "cloture_year" },
-            { label: "Mois Clôture", key: "cloture_month" },
-            { label: "Année Rapport", key: "rapport_year" },
-            { label: "Mois Rapport", key: "rapport_month" },
+            { label: "Ref", key: "ref" },
+            { label: "Application/Solution", key: "application" },
+            { label: "Année Réalisation", key: "realisation_year", min: 2000, max: 2100 },
+            { label: "Mois Réalisation", key: "realisation_month", min: 1, max: 12 },
+            { label: "Année Clôture", key: "cloture_year", min: 2000, max: 2100 },
+            { label: "Mois Clôture", key: "cloture_month", min: 1, max: 12 },
+            { label: "Année Rapport", key: "rapport_year", min: 2000, max: 2100 },
+            { label: "Mois Rapport", key: "rapport_month", min: 1, max: 12 },
             { label: "Type d'audit", key: "type_audit" },
-          ].map(({ label, key }) => (
+          ].map(({ label, key, min, max }) => (
             <Grid item xs={12} sm={6} md={3} key={key}>
               <TextField
                 label={label}
                 fullWidth
                 type={key.includes("month") || key.includes("year") ? "number" : "text"}
                 value={filters[key]}
+                inputProps={
+                  key.includes("year") || key.includes("month")
+                    ? { min: min || 0, max: max || 9999 }
+                    : {}
+                }
                 onChange={(e) =>
                   setFilters({ ...filters, [key]: e.target.value })
                 }

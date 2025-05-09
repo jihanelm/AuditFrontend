@@ -1,5 +1,23 @@
 import React, { useState, useEffect } from "react";
-import {Container, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, Button, Modal, Box, Typography, Select, MenuItem, FormControl, InputLabel} from "@mui/material";
+import {
+  Container,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  Paper,
+  Button,
+  Modal,
+  Box,
+  Typography,
+  Select,
+  MenuItem,
+  FormControl,
+  InputLabel,
+} from "@mui/material";
+import { useNavigate } from 'react-router-dom';
 import api from "../../api";
 
 const AffectList = () => {
@@ -8,6 +26,8 @@ const AffectList = () => {
   const [selectedPrestataire, setSelectedPrestataire] = useState("");
   const [selectedAffectation, setSelectedAffectation] = useState(null);
   const [open, setOpen] = useState(false);
+  const [loadingAuditId, setLoadingAuditId] = useState(null);
+  const navigate = useNavigate();
 
   useEffect(() => {
     const fetchData = async () => {
@@ -16,8 +36,6 @@ const AffectList = () => {
           api.get("/affectation/prestataires"),
           api.get("/affectation/affects"),
         ]);
-        console.log("Prestataires:", prestRes.data);
-        console.log("Affectations:", response.data);
         setPrestataires(prestRes.data);
         setAffectations(response.data);
       } catch (error) {
@@ -26,7 +44,6 @@ const AffectList = () => {
     };
     fetchData();
   }, []);
-  
 
   const handleOpen = (affectation) => {
     setSelectedAffectation(affectation);
@@ -37,6 +54,35 @@ const AffectList = () => {
     setOpen(false);
     setSelectedAffectation(null);
   };
+
+  const handleCommencerAudit = async (affect, e) => {
+    e.stopPropagation();
+  
+    const payload = {
+      demande_audit_id: affect.demande_audit_id,
+      affectation_id: affect.id,
+      prestataire_id: affect.prestataire_id ?? null,
+      auditeur_ids: Array.isArray(affect.auditeurs)
+        ? affect.auditeurs.filter(a => a && a.id).map(a => a.id)
+        : []
+    };
+  
+    console.log("Payload envoyé à /audit/audits/ :", payload);
+  
+    if (payload.auditeur_ids.length === 0) {
+      alert("Aucun auditeur sélectionné !");
+      return;
+    }
+  
+    try {
+      await api.post("/audit/audits/", payload);
+      alert("Audit ajouté au plan avec succès !");
+      navigate('/list');
+    } catch (error) {
+      console.error("Erreur lors de l'ajout au plan :", error.response?.data || error.message);
+      alert("Erreur lors de l'ajout au plan.");
+    }
+  };  
 
   return (
     <Container>
@@ -72,7 +118,11 @@ const AffectList = () => {
           </TableHead>
           <TableBody>
             {affectations
-              .filter((affect) => selectedPrestataire === "" || affect.prestataire_id === selectedPrestataire)
+              .filter(
+                (affect) =>
+                  selectedPrestataire === "" ||
+                  affect.prestataire_id === selectedPrestataire
+              )
               .map((affect) => (
                 <TableRow key={affect.id}>
                   <TableCell>{affect.id}</TableCell>
@@ -80,19 +130,33 @@ const AffectList = () => {
                   <TableCell>
                     {prestataires.find((p) => p.id === affect.prestataire_id)?.nom || "N/A"}
                   </TableCell>
-                  <TableCell>{affect.auditeurs.length}</TableCell>
+                  <TableCell>{affect.auditeurs?.length || 0}</TableCell>
                   <TableCell>
                     <Button variant="contained" color="primary" onClick={() => handleOpen(affect)}>
                       Voir Détails
                     </Button>
+                    {affect.audit_id ? (
+                      <Typography color="green" sx={{ mt: 1 }}>
+                        Audit déjà lancé
+                      </Typography>
+                    ) : (
+                      <Button
+                        color="secondary"
+                        disabled={loadingAuditId === affect.id}
+                        onClick={(e) => handleCommencerAudit(affect, e)}
+                        sx={{ ml: 1 }}
+                      >
+                        {loadingAuditId === affect.id ? "En cours..." : "Commencer Audit"}
+                      </Button>
+                    )}
                   </TableCell>
                 </TableRow>
-            ))}
+              ))}
           </TableBody>
         </Table>
       </TableContainer>
 
-      {/* Modal */}
+      {/* Modal Détails */}
       <Modal open={open} onClose={handleClose}>
         <Box
           sx={{
@@ -100,7 +164,7 @@ const AffectList = () => {
             top: "50%",
             left: "50%",
             transform: "translate(-50%, -50%)",
-            width: 400,
+            width: { xs: "90%", sm: 400 },
             bgcolor: "background.paper",
             boxShadow: 24,
             p: 4,
@@ -119,26 +183,34 @@ const AffectList = () => {
               <Typography><strong>Auditeurs:</strong></Typography>
               <ul>
                 {selectedAffectation.auditeurs.map((auditor) => (
-                  <li key={auditor.id}>{auditor.nom} {auditor.prenom} ({auditor.email})</li>
+                  <li key={auditor.id}>
+                    {auditor.nom} {auditor.prenom} ({auditor.email})
+                  </li>
                 ))}
               </ul>
               <Typography><strong>Les Adresses IPs:</strong></Typography>
               <ul>
-                <ul>
-                  {selectedAffectation.ips.map((ip, index) => (
-                    <li key={index}>
-                      {ip.adresse_ip} : {ip.ports.map(port => port.port).join(", ")}
-                    </li>
-                  ))}
-                </ul>
+                {selectedAffectation.ips.map((ip, index) => (
+                  <li key={index}>
+                    {ip.adresse_ip} : {ip.ports.map((port) => port.port).join(", ")}
+                  </li>
+                ))}
               </ul>
               {selectedAffectation.affectationpath && (
                 <Typography>
-                  <strong>Telecharger la Fiche: </strong> <a href={`http://localhost:8000/${selectedAffectation.affectationpath}`} target="_blank" rel="noopener noreferrer">Télécharger</a>
+                  <strong>Fiche: </strong>
+                  <a
+                    href={`http://localhost:8000/${selectedAffectation.affectationpath}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    Télécharger
+                  </a>
                 </Typography>
               )}
-              
-              <Button variant="contained" onClick={handleClose} style={{marginTop: "10px"}}>Fermer</Button>
+              <Button variant="contained" onClick={handleClose} sx={{ mt: 2 }}>
+                Fermer
+              </Button>
             </>
           )}
         </Box>

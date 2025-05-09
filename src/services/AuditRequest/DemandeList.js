@@ -70,9 +70,11 @@ const DemandeList = () => {
         navigate('/assign', { state: { auditData: auditToAssign } });
     };
 
+    
+
     return (
         <>
-            <Typography variant="h4" gutterBottom>Liste des Audits</Typography>
+            <Typography variant="h4" gutterBottom>Liste des Demandes d'Audits</Typography>
             <TableContainer component={Paper}>
                 <Table>
                     <TableHead>
@@ -93,7 +95,6 @@ const DemandeList = () => {
                                     <Button color="success" onClick={(e) => updateAuditEtat(audit.id, 'Validé', e)}>Valider</Button>
                                     <Button color="error" onClick={(e) => updateAuditEtat(audit.id, 'Rejeté', e)}>Rejeter</Button>
                                     <Button color="primary" onClick={(e) => { e.stopPropagation(); handleAffecter(audit.id); }}>Affecter</Button>
-                                    <Button color="secondary" onClick={(e) => { e.stopPropagation(); handleAffecter(audit.id); }}>Ajouter au Plan</Button>
                                 </TableCell>
                             </TableRow>
                         ))}

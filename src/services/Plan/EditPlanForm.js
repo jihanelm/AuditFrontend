@@ -177,10 +177,9 @@ const EditPlanForm = ({ plan, open, onClose, fetchPlans }) => {
                 value={formData.niveau_securite}
                 onChange={handleChange}
               >
-                <MenuItem value="mineure">Mineure</MenuItem>
-                <MenuItem value="moderee">Modérée</MenuItem>
-                <MenuItem value="majeure">Majeure</MenuItem>
-                <MenuItem value="critique">Critique</MenuItem>
+                <MenuItem value="Bon">Bon</MenuItem>
+                <MenuItem value="Moyen">Moyen</MenuItem>
+                <MenuItem value="Faible">Faible</MenuItem>
               </TextField>
             </Grid>
           </Grid>
